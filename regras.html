@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; connect-src 'self' https://api.mcsrvstat.us https://astral-whitelist.3237049369557647.workers.dev; img-src 'self' data: https://mc-heads.net; style-src 'self' 'unsafe-inline'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <meta name="theme-color" content="#050508" />
+  <title>Regras — Astral</title>
+  <meta name="description" content="Leia as regras do Astral: convivência, construções, jogo justo e os combinados para conflitos de RPG antes de pedir sua whitelist." />
+  <link rel="preload" href="fonts/Monocraft.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="stylesheet" href="style.css?v=11" />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+</head>
+<body data-page="regras" data-page-title="Regras">
+  <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+  <svg class="sprite" aria-hidden="true">
+    <symbol id="star" viewBox="0 0 17 17">
+      <path class="star-line" d="M8 0h1v2h-1zM8 15h1v2h-1zM0 8h2v1h-2zM15 8h2v1h-2zM7 2h1v3h-1zM9 2h1v3h-1zM7 12h1v3h-1zM9 12h1v3h-1zM2 7h3v1h-3zM12 7h3v1h-3zM2 9h3v1h-3zM12 9h3v1h-3zM4 4h2v1h-2zM11 4h2v1h-2zM4 12h2v1h-2zM11 12h2v1h-2zM4 5h1v1h-1zM12 5h1v1h-1zM4 11h1v1h-1zM12 11h1v1h-1zM6 5h1v1h-1zM10 5h1v1h-1zM6 11h1v1h-1zM10 11h1v1h-1zM5 6h1v1h-1zM11 6h1v1h-1zM5 10h1v1h-1zM11 10h1v1h-1z" />
+      <path class="star-core" d="M8 7h1v1h-1zM7 8h3v1h-3zM8 9h1v1h-1z" />
+    </symbol>
+  </svg>
+
+  <canvas id="stars" aria-hidden="true"></canvas>
+
+  <header class="nav">
+    <a href="index.html" class="logo" aria-label="Astral — Início">
+      <svg class="pixel-star logo-star" aria-hidden="true"><use href="#star" /></svg>
+      <span data-name>Astral</span>
+    </a>
+    <nav aria-label="Navegação principal">
+      <a href="index.html">Início</a>
+      <a href="sobre.html">Sobre</a>
+      <a href="regras.html" aria-current="page">Regras</a>
+      <a href="whitelist.html" class="btn btn-small">Whitelist</a>
+    </nav>
+    <a href="#" class="btn btn-small btn-ghost nav-community" data-fluxer hidden target="_blank" rel="noopener">Fluxer ↗</a>
+  </header>
+
+  <main id="conteudo" tabindex="-1">
+    <header class="page-header">
+      <p class="eyebrow"><svg class="pixel-icon" aria-hidden="true" focusable="false"><use href="icons.svg#scroll" /></svg>Nossos combinados</p>
+      <h1>Um mundo de todos.<br><span class="text-accent">Cuidado de cada um.</span></h1>
+      <p class="tagline">Nossas regras existem para que a criatividade, as amizades e as boas memórias tenham espaço para crescer.</p>
+      <ul class="identity-tags" aria-label="Princípios de convivência"><li>Respeito</li><li>Jogo justo</li><li>Cuidado com o mundo</li></ul>
+    </header>
+
+    <section id="regras" class="block" aria-labelledby="rulesTitle" data-reveal>
+      <header class="block-head">
+        <h2 id="rulesTitle">Regras do servidor</h2>
+      </header>
+      <ol class="rules-list" id="rulesList"></ol>
+    </section>
+
+    <section class="block page-cta" data-reveal>
+      <p class="eyebrow">Respeito é a nossa base</p>
+      <h2>Vamos construir algo bom juntos?</h2>
+      <p class="muted">Se esses combinados fazem sentido para você, conte um pouco sobre o seu jeito de jogar na whitelist.</p>
+      <div class="hero-actions">
+        <a href="whitelist.html" class="btn">Pedir whitelist</a>
+        <a href="#" class="btn btn-ghost" data-fluxer hidden target="_blank" rel="noopener">Tirar dúvidas no Fluxer</a>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <svg class="pixel-star foot-star" aria-hidden="true"><use href="#star" /></svg>
+    <p class="footer-promise">Feito de blocos. Lembrado por pessoas.</p>
+    <nav class="footer-nav" aria-label="Navegação do rodapé">
+      <a href="index.html">Início</a><a href="sobre.html">Sobre</a><a href="regras.html">Regras</a><a href="whitelist.html">Whitelist</a>
+    </nav>
+    <p class="lore-foot" data-lore="3"></p>
+    <p><span data-name>Astral</span> · <a href="#" data-fluxer hidden target="_blank" rel="noopener">Fluxer</a> · Não afiliado à Mojang ou à Microsoft.</p>
+    <button class="motion-toggle" type="button" data-motion-toggle aria-pressed="false" hidden><span class="motion-icon" aria-hidden="true"></span><span data-motion-label>Pausar animações</span></button>
+  </footer>
+
+  <script src="config.js?v=11"></script>
+  <script src="app.js?v=11"></script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+# Publicar: npx wrangler deploy (dentro desta pasta)
+# Segredos (não ficam aqui): npx wrangler secret put FLUXER_WEBHOOK_URL / TURNSTILE_SECRET
+name = "astral-whitelist"
+main = "worker.js"
+compatibility_date = "2026-10-01"
+workers_dev = true
+
+[vars]
+ALLOWED_ORIGINS = "https://astralmc.online,https://dvd-iso.github.io"
+SERVER_NAME = "Astral"
+MAX_PER_HOUR = "30"
+
+[[kv_namespaces]]
+binding = "RATE_KV"
+id = "a84b6976144842d2ae3aa8630608589f"

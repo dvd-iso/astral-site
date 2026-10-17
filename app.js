@@ -1,0 +1,321 @@
+(() => {
+  const cfg = window.ASTRAL_CONFIG;
+  const $ = (id) => document.getElementById(id);
+
+  function createPixelIcon(name, className = "") {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("class", `pixel-icon ${className}`.trim());
+    svg.setAttribute("aria-hidden", "true");
+    svg.setAttribute("focusable", "false");
+    const use = document.createElementNS("http://www.w3.org/2000/svg", "use");
+    use.setAttribute("href", `icons.svg#${name}`);
+    svg.append(use);
+    return svg;
+  }
+
+  // Mantém funcionando os links da antiga página única, inclusive com /astral-site/.
+  if (document.body.dataset.page === "inicio") {
+    const legacyPages = { "#sobre": "sobre.html", "#regras": "regras.html", "#whitelist": "whitelist.html" };
+    const redirectLegacyLink = () => {
+      const page = legacyPages[location.hash];
+      if (!page) return false;
+      location.replace(new URL(page, location.href).href);
+      return true;
+    };
+    if (redirectLegacyLink()) return;
+    addEventListener("hashchange", redirectLegacyLink);
+  }
+
+  // ---------- Preferência de movimento compartilhada entre as páginas ----------
+  const motionQuery = matchMedia("(prefers-reduced-motion: reduce)");
+  const motionListeners = new Set();
+  let motionPaused = false;
+  let motionEnabled = false;
+  try { motionPaused = localStorage.getItem("astral_motion") === "paused"; } catch {}
+  const motionButtons = document.querySelectorAll("[data-motion-toggle]");
+  function updateMotion() {
+    motionEnabled = !motionQuery.matches && !motionPaused;
+    document.documentElement.dataset.motion = motionEnabled ? "on" : "off";
+    motionButtons.forEach((button) => {
+      button.hidden = false;
+      button.disabled = motionQuery.matches;
+      button.setAttribute("aria-pressed", String(!motionEnabled));
+      button.querySelector("[data-motion-label]").textContent = motionQuery.matches
+        ? "Movimento reduzido pelo sistema"
+        : motionEnabled ? "Pausar animações" : "Ativar animações";
+    });
+    motionListeners.forEach((listener) => listener());
+  }
+  motionButtons.forEach((button) => button.addEventListener("click", () => {
+    motionPaused = !motionPaused;
+    try { localStorage.setItem("astral_motion", motionPaused ? "paused" : "on"); } catch {}
+    updateMotion();
+  }));
+  motionQuery.addEventListener("change", updateMotion);
+  updateMotion();
+
+  // ---------- Textos dinâmicos ----------
+  document.querySelectorAll("[data-name]").forEach((el) => (el.textContent = cfg.serverName));
+  document.title = `${document.body.dataset.pageTitle} — ${cfg.serverName}`;
+  if ($("ipText")) $("ipText").textContent = cfg.serverAddress;
+
+  // Botões/links para a comunidade no Fluxer
+  if (cfg.fluxerInviteUrl) {
+    document.querySelectorAll("[data-fluxer]").forEach((a) => {
+      a.href = cfg.fluxerInviteUrl;
+      a.hidden = false;
+    });
+  }
+
+  // ---------- Fragmentos da lore ----------
+  document.querySelectorAll("[data-lore]").forEach((el) => {
+    const item = (cfg.lore || [])[Number(el.dataset.lore)];
+    if (!item) return el.remove();
+    if (el.tagName !== "BLOCKQUOTE") return (el.textContent = `“${item.texto}”`);
+    const p = document.createElement("p");
+    p.textContent = `“${item.texto}”`;
+    el.append(p);
+    if (item.fonte) {
+      const cite = document.createElement("cite");
+      cite.textContent = `— ${item.fonte}`;
+      el.append(cite);
+    }
+  });
+
+  // ---------- Pequenas descobertas na página Sobre ----------
+  const fragmentCopy = document.querySelector("[data-fragment-copy]");
+  const nextFragment = document.querySelector("[data-next-fragment]");
+  const fragmentProgress = document.querySelector("[data-fragment-progress]");
+  const fragments = cfg.memoryFragments || [];
+  if (fragmentCopy && nextFragment && fragmentProgress && fragments.length) {
+    let fragmentIndex = 0;
+    function showFragment() {
+      const fragment = fragments[fragmentIndex];
+      fragmentCopy.querySelector("[data-fragment-text]").textContent = `“${fragment.texto}”`;
+      fragmentCopy.querySelector("[data-fragment-source]").textContent = fragment.fonte ? `— ${fragment.fonte}` : "";
+      fragmentProgress.setAttribute("aria-label", `Fragmento ${fragmentIndex + 1} de ${fragments.length}`);
+      fragmentProgress.replaceChildren(...fragments.map((_, index) => createPixelIcon("spark", index === fragmentIndex ? "is-current" : "")));
+    }
+    showFragment();
+    nextFragment.hidden = fragments.length < 2;
+    nextFragment.addEventListener("click", () => {
+      fragmentIndex = (fragmentIndex + 1) % fragments.length;
+      fragmentCopy.getAnimations().forEach((animation) => animation.cancel());
+      showFragment();
+      if (motionEnabled) fragmentCopy.animate(
+        [{ opacity: .2, transform: "translateY(8px)" }, { opacity: 1, transform: "translateY(0)" }],
+        { duration: 350, easing: "ease-out" },
+      );
+    });
+    motionListeners.add(() => {
+      if (!motionEnabled) fragmentCopy.getAnimations().forEach((animation) => animation.cancel());
+    });
+  }
+  const sceneToggle = document.querySelector("[data-scene-toggle]");
+  if (sceneToggle) {
+    sceneToggle.hidden = false;
+    sceneToggle.addEventListener("click", () => {
+      const isDay = sceneToggle.closest(".world-scene").classList.toggle("is-day");
+      sceneToggle.setAttribute("aria-pressed", String(isDay));
+      sceneToggle.textContent = isDay ? "Voltar à noite" : "Ver o amanhecer";
+      $("sceneDesc").textContent = `Ilustração em pixel art de duas pessoas ao redor de uma fogueira, uma casa iluminada, árvores, montanhas e um rio ${isDay ? "à luz do amanhecer" : "sob o céu estrelado"}.`;
+    });
+  }
+
+  // ---------- Regras (somente na página de regras) ----------
+  const rulesList = $("rulesList");
+  if (rulesList) {
+    (cfg.rules || []).forEach((rule) => {
+      const li = document.createElement("li");
+      li.append(createPixelIcon("shield", "rule-icon"), document.createTextNode(rule));
+      rulesList.append(li);
+    });
+  }
+
+  // ---------- Copiar IP ----------
+  $("copyIp")?.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(cfg.serverAddress);
+      $("copyHint").textContent = "copiado! ✓";
+    } catch {
+      $("copyHint").textContent = cfg.serverAddress;
+    }
+    setTimeout(() => ($("copyHint").textContent = "clique para copiar"), 2000);
+  });
+
+  // ---------- Status do servidor (api.mcsrvstat.us) ----------
+  async function loadStatus() {
+    const badge = $("statusBadge");
+    try {
+      const res = await fetch(`https://api.mcsrvstat.us/3/${encodeURIComponent(cfg.serverAddress)}`);
+      const data = await res.json();
+
+      if (!data.online) {
+        badge.className = "badge off";
+        badge.querySelector("b").textContent = "offline";
+        $("playersOnline").textContent = "0";
+        $("playersMax").textContent = "–";
+        $("version").textContent = cfg.serverVersion;
+        $("playerList").innerHTML = "";
+      } else {
+        badge.className = "badge on";
+        badge.querySelector("b").textContent = "online";
+        $("playersOnline").textContent = data.players?.online ?? 0;
+        $("playersMax").textContent = data.players?.max ?? "–";
+        $("version").textContent = cfg.serverVersion || data.version || "–";
+
+        const list = $("playerList");
+        list.innerHTML = "";
+        (data.players?.list || []).forEach((p) => {
+          const li = document.createElement("li");
+          const img = document.createElement("img");
+          img.src = `https://mc-heads.net/avatar/${encodeURIComponent(p.name)}/24`;
+          img.alt = "";
+          img.loading = "lazy";
+          li.append(img, document.createTextNode(p.name));
+          list.append(li);
+        });
+      }
+      $("updated").textContent = `Atualizado às ${new Date().toLocaleTimeString("pt-BR")} • atualiza a cada minuto`;
+    } catch {
+      badge.className = "badge off";
+      badge.querySelector("b").textContent = "indisponível";
+      $("updated").textContent = "Não foi possível consultar o status agora.";
+    }
+  }
+  if ($("statusBadge")) {
+    loadStatus();
+    setInterval(loadStatus, 60_000);
+  }
+
+  // ---------- Seções reveladas ao explorar a página ----------
+  const revealElements = [...document.querySelectorAll("[data-reveal]")];
+  if (motionEnabled && "IntersectionObserver" in window) {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add("is-visible");
+        observer.unobserve(entry.target);
+      });
+    }, { threshold: .06, rootMargin: "0px 0px -24px 0px" });
+    revealElements.forEach((element) => {
+      const siblings = [...element.parentElement.children].filter((child) => child.hasAttribute("data-reveal"));
+      element.style.setProperty("--reveal-delay", `${Math.min(siblings.indexOf(element), 3) * .08}s`);
+      element.classList.add("reveal-ready");
+      observer.observe(element);
+    });
+    motionListeners.add(() => {
+      if (motionEnabled) return;
+      revealElements.forEach((element) => element.classList.add("is-visible"));
+      observer.disconnect();
+    });
+  }
+
+  // A linha do menu acompanha a leitura sem interceptar a navegação.
+  let progressFrame = 0;
+  function updateReadingProgress() {
+    progressFrame = 0;
+    const distance = document.documentElement.scrollHeight - innerHeight;
+    document.documentElement.style.setProperty("--reading-progress", distance > 0 ? String(Math.min(1, Math.max(0, scrollY / distance))) : "0");
+  }
+  const scheduleReadingProgress = () => {
+    if (!progressFrame) progressFrame = requestAnimationFrame(updateReadingProgress);
+  };
+  addEventListener("scroll", scheduleReadingProgress, { passive: true });
+  addEventListener("resize", scheduleReadingProgress);
+  document.fonts.ready.then(scheduleReadingProgress);
+  updateReadingProgress();
+
+  // ---------- Céu vivo: estrelas, profundidade e estrelas cadentes ----------
+  const canvas = $("stars");
+  const ctx = canvas?.getContext("2d");
+  if (!ctx) return;
+  let stars = [];
+  let width = 0;
+  let height = 0;
+  let frame = 0;
+  let lastDraw = 0;
+  let nextMeteor = 0;
+  let meteor = null;
+  const pointer = { x: 0, y: 0, targetX: 0, targetY: 0 };
+  function resizeSky() {
+    width = innerWidth;
+    height = innerHeight;
+    const ratio = Math.min(devicePixelRatio || 1, 2);
+    canvas.width = Math.round(width * ratio);
+    canvas.height = Math.round(height * ratio);
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    const colors = ["#f2c94c", "#5b93f7", "#b19aef", "#ffffff", "#ffffff", "#ffffff", "#ffffff"];
+    stars = Array.from({ length: Math.min(180, Math.max(30, Math.floor(width * height / 7000))) }, () => ({
+      x: Math.random() * width,
+      y: Math.random() * height,
+      size: Math.random() > .85 ? 2 : 1,
+      phase: Math.random() * Math.PI * 2,
+      speed: .4 + Math.random() * .7,
+      depth: .2 + Math.random() * .8,
+      color: colors[Math.floor(Math.random() * colors.length)],
+    }));
+    syncSky();
+  }
+  function drawSky(now) {
+    ctx.clearRect(0, 0, width, height);
+    pointer.x = motionEnabled ? pointer.x + (pointer.targetX - pointer.x) * .04 : 0;
+    pointer.y = motionEnabled ? pointer.y + (pointer.targetY - pointer.y) * .04 : 0;
+    stars.forEach((star) => {
+      ctx.globalAlpha = motionEnabled ? .3 + Math.sin(now * .001 * star.speed + star.phase) * .2 : .5;
+      ctx.fillStyle = star.color;
+      ctx.fillRect(star.x + pointer.x * star.depth, star.y + pointer.y * star.depth, star.size, star.size);
+    });
+    if (motionEnabled && now >= nextMeteor) {
+      meteor = { x: width * (.15 + Math.random() * .5), y: height * Math.random() * .25, start: now };
+      nextMeteor = now + 9000 + Math.random() * 7000;
+    }
+    if (meteor && motionEnabled) {
+      const progress = (now - meteor.start) / 1200;
+      if (progress >= 1) meteor = null;
+      else {
+        const x = meteor.x + progress * 220;
+        const y = meteor.y + progress * 140;
+        const trail = ctx.createLinearGradient(x - 65, y - 40, x, y);
+        trail.addColorStop(0, "rgba(139, 108, 246, 0)");
+        trail.addColorStop(1, "#eadcfb");
+        ctx.globalAlpha = Math.sin(progress * Math.PI) * .7;
+        ctx.strokeStyle = trail;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(x - 65, y - 40);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+  function animateSky(now) {
+    frame = 0;
+    if (!motionEnabled || document.hidden) return;
+    if (now - lastDraw >= 1000 / 30) {
+      drawSky(now);
+      lastDraw = now;
+    }
+    frame = requestAnimationFrame(animateSky);
+  }
+  function syncSky() {
+    if (frame) cancelAnimationFrame(frame);
+    frame = 0;
+    meteor = null;
+    const now = performance.now();
+    nextMeteor = now + 7000;
+    drawSky(now);
+    if (motionEnabled && !document.hidden) frame = requestAnimationFrame(animateSky);
+  }
+  motionListeners.add(syncSky);
+  addEventListener("resize", resizeSky);
+  document.addEventListener("visibilitychange", syncSky);
+  addEventListener("pointermove", (event) => {
+    if (!motionEnabled || event.pointerType !== "mouse") return;
+    pointer.targetX = (event.clientX / width - .5) * 12;
+    pointer.targetY = (event.clientY / height - .5) * 12;
+  }, { passive: true });
+  document.addEventListener("pointerleave", () => { pointer.targetX = 0; pointer.targetY = 0; });
+  resizeSky();
+})();
