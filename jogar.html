@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; frame-src 'none'; connect-src 'self' https://api.mcsrvstat.us; img-src 'self' data: https://mc-heads.net; style-src 'self' 'unsafe-inline'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <meta name="theme-color" content="#050508" />
+  <title>Jogar — Astral</title>
+  <meta name="description" content="Entre no Astral: endereço, versão do Minecraft Java e instruções de autenticação para contas originais e sem premium." />
+  <link rel="preload" href="fonts/Monocraft.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="stylesheet" href="style.css?v=12" />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+</head>
+<body data-page="jogar" data-page-title="Jogar">
+  <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+  <svg class="sprite" aria-hidden="true">
+    <symbol id="star" viewBox="0 0 17 17">
+      <path class="star-line" d="M8 0h1v2h-1zM8 15h1v2h-1zM0 8h2v1h-2zM15 8h2v1h-2zM7 2h1v3h-1zM9 2h1v3h-1zM7 12h1v3h-1zM9 12h1v3h-1zM2 7h3v1h-3zM12 7h3v1h-3zM2 9h3v1h-3zM12 9h3v1h-3zM4 4h2v1h-2zM11 4h2v1h-2zM4 12h2v1h-2zM11 12h2v1h-2zM4 5h1v1h-1zM12 5h1v1h-1zM4 11h1v1h-1zM12 11h1v1h-1zM6 5h1v1h-1zM10 5h1v1h-1zM6 11h1v1h-1zM10 11h1v1h-1zM5 6h1v1h-1zM11 6h1v1h-1zM5 10h1v1h-1zM11 10h1v1h-1z" />
+      <path class="star-core" d="M8 7h1v1h-1zM7 8h3v1h-3zM8 9h1v1h-1z" />
+    </symbol>
+  </svg>
+  <canvas id="stars" aria-hidden="true"></canvas>
+
+  <header class="nav">
+    <a href="index.html" class="logo" aria-label="Astral — Início"><svg class="pixel-star logo-star" aria-hidden="true"><use href="#star" /></svg><span data-name>Astral</span></a>
+    <nav aria-label="Navegação principal">
+      <a href="index.html">Início</a><a href="sobre.html">Sobre</a><a href="regras.html">Regras</a><a href="jogar.html" class="btn btn-small" aria-current="page">Jogar</a>
+    </nav>
+    <a href="#" class="btn btn-small btn-ghost nav-community" data-fluxer hidden target="_blank" rel="noopener">Fluxer ↗</a>
+  </header>
+
+  <main id="conteudo" tabindex="-1">
+    <header class="page-header">
+      <p class="eyebrow"><svg class="pixel-icon" aria-hidden="true" focusable="false"><use href="icons.svg#entrance" /></svg>Entre no Astral</p>
+      <h1>O próximo capítulo<br><span class="text-accent">pode ser seu.</span></h1>
+      <p class="tagline">Traga suas ideias, conheça nossos combinados e venha jogar. A entrada é direta pelo Minecraft.</p>
+    </header>
+
+    <ol class="entry-steps" aria-label="Como começar no Astral" data-reveal>
+      <li><svg class="pixel-icon" aria-hidden="true" focusable="false"><use href="icons.svg#scroll" /></svg><a href="regras.html">Conheça os combinados</a></li>
+      <li><svg class="pixel-icon" aria-hidden="true" focusable="false"><use href="icons.svg#entrance" /></svg>Adicione o servidor</li>
+      <li><svg class="pixel-icon" aria-hidden="true" focusable="false"><use href="icons.svg#player" /></svg>Entre e autentique-se</li>
+    </ol>
+
+    <section class="block page-cta" aria-labelledby="connectTitle" data-reveal>
+      <p class="eyebrow" data-version>Java 26.3</p>
+      <h2 id="connectTitle">Seu caminho começa aqui.</h2>
+      <p class="muted">No Minecraft Java, abra <strong>Multijogador → Adicionar servidor</strong>, dê o nome Astral e use este endereço:</p>
+      <button class="ip" id="copyIp" title="Clique para copiar o endereço do servidor"><span id="ipText">astralmc.online</span><small id="copyHint" aria-live="polite">clique para copiar</small></button>
+    </section>
+
+    <section class="block" aria-labelledby="loginTitle" data-reveal>
+      <header class="block-head"><h2 id="loginTitle">Autenticação no jogo</h2></header>
+      <div class="access-grid">
+        <article class="feature f-purple">
+          <h3>Conta original</h3>
+          <p>Entre com sua conta Microsoft/Minecraft autenticada no launcher. O nLogin verifica a sessão e faz o login automaticamente para as contas reconhecidas como originais.</p>
+        </article>
+        <article class="feature f-blue">
+          <h3>Conta sem premium</h3>
+          <p>No primeiro acesso, cadastre uma senha com pelo menos 8 caracteres:</p>
+          <code class="login-command">/register sua_senha sua_senha</code>
+          <p>Nos próximos acessos, use:</p>
+          <code class="login-command">/login sua_senha</code>
+        </article>
+      </div>
+      <p class="muted">Precisa de ajuda para entrar? <a href="#" data-fluxer hidden target="_blank" rel="noopener">Fale com a comunidade no Fluxer.</a></p>
+    </section>
+    <blockquote class="lore" data-lore="2" data-reveal></blockquote>
+  </main>
+
+  <footer>
+    <svg class="pixel-star foot-star" aria-hidden="true"><use href="#star" /></svg>
+    <p class="footer-promise">Feito de blocos. Lembrado por pessoas.</p>
+    <nav class="footer-nav" aria-label="Navegação do rodapé"><a href="index.html">Início</a><a href="sobre.html">Sobre</a><a href="regras.html">Regras</a><a href="jogar.html">Jogar</a></nav>
+    <p class="lore-foot" data-lore="3"></p>
+    <p><span data-name>Astral</span> · <a href="#" data-fluxer hidden target="_blank" rel="noopener">Fluxer</a> · Não afiliado à Mojang ou à Microsoft.</p>
+    <button class="motion-toggle" type="button" data-motion-toggle aria-pressed="false" hidden><span class="motion-icon" aria-hidden="true"></span><span data-motion-label>Pausar animações</span></button>
+  </footer>
+  <script src="config.js?v=12"></script>
+  <script src="app.js?v=12"></script>
+</body>
+</html>

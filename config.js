@@ -11,21 +11,10 @@ window.ASTRAL_CONFIG = {
   // Versão exibida no site
   serverVersion: "Java 26.3",
 
-  // ---------- Envio dos pedidos de whitelist ----------
-  // O site manda os pedidos para o Cloudflare Worker (pasta worker/), que confere o
-  // captcha, aplica os limites e repassa ao Fluxer. NUNCA coloque a URL do webhook
-  // aqui: tudo neste arquivo é público. Ela fica só nos segredos do Worker.
-  // Ex: "https://astral-whitelist.SEU-USUARIO.workers.dev"
-  workerUrl: "https://astral-whitelist.3237049369557647.workers.dev",
-
-  // Site key do Cloudflare Turnstile (captcha). Esta chave é pública mesmo;
-  // a Secret key fica só no Worker.
-  turnstileSiteKey: "0x4AAAAAAFZBlkQPH0kDTA2d",
-
   // Link de convite da comunidade no Fluxer (opcional, deixe "" para esconder o botão)
   fluxerInviteUrl: "https://fluxer.gg/MhWgkZtU",
 
-  // Fragmentos da lore: Início, Sobre, Whitelist e rodapé de todas as páginas.
+  // Fragmentos da lore: Início, Sobre, Jogar e rodapé de todas as páginas.
   // "fonte" é opcional.
   lore: [
     { texto: "Um novo Sonhador desperta. O mundo se lembra de você agora.", fonte: "a Invocação" },
@@ -56,15 +45,4 @@ window.ASTRAL_CONFIG = {
     "A palavra final é da staff. Algum problema? Fale com a gente no Fluxer.",
   ],
 
-  // Opções de estilo de jogo mostradas no formulário
-  playStyles: [
-    "Construtor",
-    "Explorador",
-    "Redstone / Farms técnicas",
-    "Sobrevivência / PvE",
-    "PvP",
-    "Comerciante / Economia",
-    "Social / Comunidade",
-    "RPG / Interpretação",
-  ],
 };

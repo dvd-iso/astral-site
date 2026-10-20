@@ -15,7 +15,7 @@
 
   // Mantém funcionando os links da antiga página única, inclusive com /astral-site/.
   if (document.body.dataset.page === "inicio") {
-    const legacyPages = { "#sobre": "sobre.html", "#regras": "regras.html", "#whitelist": "whitelist.html" };
+    const legacyPages = { "#sobre": "sobre.html", "#regras": "regras.html", "#jogar": "jogar.html" };
     const redirectLegacyLink = () => {
       const page = legacyPages[location.hash];
       if (!page) return false;
@@ -56,6 +56,7 @@
 
   // ---------- Textos dinâmicos ----------
   document.querySelectorAll("[data-name]").forEach((el) => (el.textContent = cfg.serverName));
+  document.querySelectorAll("[data-version]").forEach((el) => (el.textContent = cfg.serverVersion));
   document.title = `${document.body.dataset.pageTitle} — ${cfg.serverName}`;
   if ($("ipText")) $("ipText").textContent = cfg.serverAddress;
 
