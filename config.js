@@ -23,7 +23,7 @@ window.ASTRAL_CONFIG = {
   },
 
   // Link de convite da comunidade no Fluxer (opcional, deixe "" para esconder o botão)
-  fluxerInviteUrl: "https://fluxer.gg/MhWgkZtU",
+  fluxerInviteUrl: "https://fluxer.gg/9LVGkUy6",
 
   // Fragmentos da lore usados nas páginas e no livro interativo.
   // "fonte" é opcional.
