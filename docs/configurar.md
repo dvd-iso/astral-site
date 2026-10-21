@@ -6,6 +6,7 @@ Site estático em HTML/CSS/JavaScript, publicado no **GitHub Pages**.
 - Regras e instruções de acesso direto ao Minecraft.
 - Endereço para copiar e status ao vivo via [mcsrvstat.us](https://mcsrvstat.us).
 - Link para a comunidade no Fluxer.
+- Download do modpack e tutoriais para Prism Launcher, SKlauncher e Modrinth App.
 
 ## Páginas
 
@@ -15,14 +16,16 @@ Site estático em HTML/CSS/JavaScript, publicado no **GitHub Pages**.
 | Sobre | `sobre.html` | proposta, RPG, progressão narrativa e comunidade |
 | Regras | `regras.html` | combinados ilustrados com cenas 8-bit |
 | Ajuda de acesso | `jogar.html` | instruções para links diretos e guias da comunidade |
+| Instalar o modpack | `instalar.html?launcher=prism` | guia do Prism; também aceita `sklauncher` e `modrinth` |
 
 Todas usam `style.css`, `config.js` e `app.js`. A barra superior reúne Início,
-Sobre e Regras. **Jogar é um botão de copiar o IP**: no desktop, revela o endereço
-ao receber hover ou foco pelo teclado. No celular, o botão Jogar permanece
-visível e copia com um toque; Início, Sobre, Regras e Fluxer ficam no menu
-compacto. O menu fecha ao escolher um link, tocar fora ou usar Escape. A
-confirmação da cópia aparece no botão e em um aviso acessível. A página de ajuda
-continua disponível para os links dos guias.
+Sobre e Regras. **Jogar abre uma janela para escolher o launcher**, com as três
+opções e o link discreto **Continuar sem baixar o modpack**. Ao escolher um
+launcher, o visitante abre seu tutorial e o navegador recebe o pedido de download.
+A janela fecha pelo botão de fechar, Escape ou clique fora, e devolve o foco ao
+link que a abriu. No celular, o botão Jogar permanece visível; os links da
+navegação ficam no menu compacto. Os botões de copiar o IP continuam nas páginas
+de acesso e instalação, com confirmação acessível.
 
 ## Configuração
 
@@ -33,6 +36,7 @@ Edite `config.js`:
 | `serverName` | nome do servidor |
 | `serverAddress` | endereço do Minecraft |
 | `serverVersion` | edição e versão exibidas |
+| `modpack` | URL direta, nome do arquivo e versões do modpack, Minecraft e loader |
 | `fluxerInviteUrl` | convite da comunidade, opcional |
 | `rules` | regras da página Regras |
 | `ruleCards` | título e ID da arte de cada regra, na mesma ordem de `rules` |
@@ -41,6 +45,29 @@ Edite `config.js`:
 
 A página Jogar explica o acesso para contas originais e para jogadores sem conta
 premium. O nLogin é instalado e configurado no servidor Minecraft.
+
+## Modpack e instalação
+
+- `downloads/Astral.mrpack` é a cópia de distribuição do pacote de cliente.
+  Mantém mods, configurações e recursos do pack, sem caches de execução,
+  históricos, dados do jogador nem lista pessoal de servidores.
+- `modpack` em `config.js` concentra `downloadUrl`, `fileName`, `version`,
+  `minecraftVersion`, `loader` e `loaderVersion`. Confira esses valores no
+  `modrinth.index.json` ao substituir o pacote.
+- Os três launchers recebem o mesmo arquivo. `instalar.js` seleciona o guia
+  conforme `?launcher=prism`, `?launcher=sklauncher` ou `?launcher=modrinth`.
+  Sem uma escolha válida, a página mostra todos os guias.
+- Os links da janela acrescentam `&download=1`. O tutorial consome esse parâmetro
+  antes de solicitar o download, para que recarregar ou voltar não baixe novamente.
+  Abrir um guia diretamente ou trocar de guia não dispara downloads.
+- O arquivo é servido no próprio site e o link usa o atributo `download`, para
+  manter o tutorial aberto. Se o navegador bloquear o início automático, o botão
+  **Baixar modpack** permite repetir a tentativa.
+- O guia do SKlauncher usa **4.0 beta**, cuja importação permite arrastar o
+  `.mrpack` para a janela. Prism e Modrinth App pedem uma conta Microsoft com
+  Minecraft Java; os respectivos passos informam isso.
+- Sem JavaScript, Jogar leva à página de acesso; o download manual e todos os
+  passos de instalação continuam disponíveis.
 
 ## Lore e movimento
 
@@ -55,19 +82,20 @@ completo de cada regra permanece em `rules`, também lido pelos guias do bot.
 - `lore` e `memoryFragments` ficam em `config.js`.
 - `style.css` cuida das animações e microinterações.
 - `app.js` cuida do céu, do livro, das regras ilustradas, da cópia do IP e da
-  preferência de movimento.
+  preferência de movimento, além da janela de escolha do launcher.
 - **Pausar animações**, no rodapé, guarda a escolha entre as páginas.
 - A preferência de movimento reduzido do sistema é respeitada.
 - O conteúdo principal continua visível com JavaScript desativado.
 
 Os links relativos funcionam no domínio próprio e em `/astral-site/`. Os atalhos
 `#sobre` e `#regras` na página inicial levam às páginas correspondentes;
-`#status` permanece na página inicial. O botão Jogar não troca de página.
+`#status` permanece na página inicial. A escolha de launcher abre a página de
+instalação; o link para continuar sem baixar leva a `jogar.html#conectar`.
 
 ## Publicação
 
 No GitHub, configure **Settings → Pages → Deploy from a branch → `main` /
-`(root)`**. As quatro páginas são servidas diretamente, sem etapa de build.
+`(root)`**. As cinco páginas são servidas diretamente, sem etapa de build.
 
 O arquivo `CNAME` configura o domínio **astralmc.online**. Registros DNS:
 

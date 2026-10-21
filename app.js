@@ -96,6 +96,23 @@
   document.title = `${document.body.dataset.pageTitle} — ${cfg.serverName}`;
   document.querySelectorAll("[data-server-address]").forEach((el) => (el.textContent = cfg.serverAddress));
 
+  const modpack = cfg.modpack;
+  if (modpack) {
+    const packLabels = {
+      "data-modpack-file": modpack.fileName,
+      "data-modpack-version": modpack.version,
+      "data-modpack-minecraft": modpack.minecraftVersion,
+      "data-modpack-loader": `${modpack.loader} ${modpack.loaderVersion}`,
+    };
+    Object.entries(packLabels).forEach(([attribute, text]) => {
+      document.querySelectorAll(`[${attribute}]`).forEach((element) => (element.textContent = text));
+    });
+    document.querySelectorAll("[data-modpack-download]").forEach((link) => {
+      link.href = modpack.downloadUrl;
+      link.download = modpack.fileName;
+    });
+  }
+
   // Botões/links para a comunidade no Fluxer
   if (cfg.fluxerInviteUrl) {
     document.querySelectorAll("[data-fluxer]").forEach((a) => {
@@ -182,6 +199,82 @@
     });
   }
 
+  // ---------- Jogar: escolher o launcher ou seguir sem o modpack ----------
+  const playLinks = document.querySelectorAll("[data-play]");
+  if (playLinks.length && typeof HTMLDialogElement !== "undefined" && "showModal" in HTMLDialogElement.prototype) {
+    const dialog = document.createElement("dialog");
+    dialog.id = "playDialog";
+    dialog.className = "play-dialog";
+    dialog.setAttribute("aria-labelledby", "playDialogTitle");
+    dialog.setAttribute("aria-describedby", "playDialogDescription");
+    dialog.innerHTML = `
+      <button type="button" class="dialog-close" aria-label="Fechar escolha de launcher">×</button>
+      <p class="eyebrow"><svg class="pixel-icon" aria-hidden="true" focusable="false"><use href="icons.svg#spark" /></svg>Seu próximo capítulo</p>
+      <h2 id="playDialogTitle" tabindex="-1" autofocus>Você gostaria de ter<br><span class="text-accent">a experiência completa?</span></h2>
+      <p id="playDialogDescription" class="muted">Instale o modpack do <span data-pack-name></span> com tudo preparado para você. Escolha seu launcher para baixar o pacote e abrir o passo a passo.</p>
+      <div class="launcher-options" role="group" aria-label="Escolha seu launcher">
+        <a class="launcher-option launcher-prism" href="instalar.html?launcher=prism&amp;download=1">
+          <svg class="launcher-icon" aria-hidden="true" focusable="false"><use href="icons.svg#prism" /></svg>
+          <span class="launcher-name">Prism Launcher</span><span class="launcher-action">Instalar no Prism <span aria-hidden="true">→</span></span>
+        </a>
+        <a class="launcher-option launcher-sklauncher" href="instalar.html?launcher=sklauncher&amp;download=1">
+          <svg class="launcher-icon" aria-hidden="true" focusable="false"><use href="icons.svg#launcher" /></svg>
+          <span class="launcher-name">SKlauncher</span><span class="launcher-action">Instalar no SKlauncher <span aria-hidden="true">→</span></span>
+        </a>
+        <a class="launcher-option launcher-modrinth" href="instalar.html?launcher=modrinth&amp;download=1">
+          <svg class="launcher-icon" aria-hidden="true" focusable="false"><use href="icons.svg#modrinth" /></svg>
+          <span class="launcher-name">Modrinth App</span><span class="launcher-action">Instalar no Modrinth <span aria-hidden="true">→</span></span>
+        </a>
+      </div>
+      <p class="launcher-help muted">Ainda não tem um launcher? O guia também mostra onde baixar.</p>
+      <a class="skip-modpack" href="jogar.html#conectar">Continuar sem baixar o modpack <span aria-hidden="true">→</span></a>
+    `;
+    dialog.querySelector("[data-pack-name]").textContent = cfg.serverName;
+    document.body.append(dialog);
+    let playTrigger;
+    playLinks.forEach((link) => {
+      link.setAttribute("aria-haspopup", "dialog");
+      link.setAttribute("aria-controls", dialog.id);
+      link.addEventListener("click", (event) => {
+        if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        event.preventDefault();
+        if (dialog.open) return;
+        if (navToggle?.getAttribute("aria-expanded") === "true") navToggle.click();
+        playTrigger = link;
+        dialog.showModal();
+        document.documentElement.classList.add("play-dialog-open");
+      });
+    });
+    dialog.querySelector(".dialog-close").addEventListener("click", () => dialog.close());
+    dialog.querySelector(".skip-modpack").addEventListener("click", (event) => {
+      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      playTrigger = null;
+      dialog.close();
+    });
+    dialog.addEventListener("keydown", (event) => {
+      if (event.key !== "Tab") return;
+      const controls = [...dialog.querySelectorAll("a[href], button:not([disabled])")];
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    });
+    dialog.addEventListener("click", (event) => {
+      if (event.target !== dialog) return;
+      const bounds = dialog.getBoundingClientRect();
+      if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) dialog.close();
+    });
+    dialog.addEventListener("close", () => {
+      document.documentElement.classList.remove("play-dialog-open");
+      playTrigger?.focus({ preventScroll: true });
+    });
+  }
+
   // ---------- Copiar IP ----------
   const copyButtons = document.querySelectorAll("[data-copy-ip]");
   if (copyButtons.length) {
@@ -215,7 +308,7 @@
 
     copyButtons.forEach((button) => {
       button.title = `Copiar ${cfg.serverAddress}`;
-      button.setAttribute("aria-label", `Jogar no ${cfg.serverName}: copiar o endereço ${cfg.serverAddress}`);
+      button.setAttribute("aria-label", `Copiar o endereço do ${cfg.serverName}: ${cfg.serverAddress}`);
       button.addEventListener("click", async () => {
         let copied;
         try {

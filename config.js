@@ -11,6 +11,17 @@ window.ASTRAL_CONFIG = {
   // Versão exibida no site
   serverVersion: "Java 26.3",
 
+  // Pacote compartilhado pelos três launchers. Use um link direto no próprio site.
+  // Ao trocar o arquivo, atualize também as versões conforme modrinth.index.json.
+  modpack: {
+    downloadUrl: "downloads/Astral.mrpack",
+    fileName: "Astral.mrpack",
+    version: "1.0.0",
+    minecraftVersion: "26.3",
+    loader: "Fabric",
+    loaderVersion: "0.19.5",
+  },
+
   // Link de convite da comunidade no Fluxer (opcional, deixe "" para esconder o botão)
   fluxerInviteUrl: "https://fluxer.gg/MhWgkZtU",
 

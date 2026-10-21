@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; frame-src 'none'; connect-src 'self' https://api.mcsrvstat.us; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <meta name="theme-color" content="#050508" />
+  <title>Instalar o modpack — Astral</title>
+  <meta name="description" content="Baixe o modpack do Astral e veja como instalar no Prism Launcher, SKlauncher ou Modrinth App em Windows, Linux e macOS." />
+  <link rel="preload" href="fonts/Monocraft.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="stylesheet" href="style.css?v=15" />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+</head>
+<body data-page="instalar" data-page-title="Instalar o modpack">
+  <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+  <svg class="sprite" aria-hidden="true">
+    <symbol id="star" viewBox="0 0 17 17">
+      <path class="star-line" d="M8 0h1v2h-1zM8 15h1v2h-1zM0 8h2v1H0zM15 8h2v1h-2zM7 2h1v3H7zM9 2h1v3H9zM7 12h1v3H7zM9 12h1v3H9zM2 7h3v1H2zM12 7h3v1h-3zM2 9h3v1H2zM12 9h3v1h-3zM4 4h2v1H4zM11 4h2v1h-2zM4 12h2v1H4zM11 12h2v1h-2zM4 5h1v1H4zM12 5h1v1h-1zM4 11h1v1H4zM12 11h1v1h-1zM6 5h1v1H6zM10 5h1v1h-1zM6 11h1v1H6zM10 11h1v1h-1zM5 6h1v1H5zM11 6h1v1h-1zM5 10h1v1H5zM11 10h1v1h-1z" />
+      <path class="star-core" d="M8 7h1v1H8zM7 8h3v1H7zM8 9h1v1H8z" />
+    </symbol>
+  </svg>
+  <canvas id="stars" aria-hidden="true"></canvas>
+
+  <header class="nav">
+    <a href="index.html" class="logo" aria-label="Astral — Início"><svg class="pixel-star logo-star" aria-hidden="true"><use href="#star" /></svg><span data-name>Astral</span></a>
+    <nav id="siteNavigation" aria-label="Navegação principal">
+      <a href="index.html">Início</a><a href="sobre.html">Sobre</a><a href="regras.html">Regras</a>
+      <a href="#" class="nav-mobile-community" data-fluxer hidden target="_blank" rel="noopener">Fluxer ↗</a>
+    </nav>
+    <div class="nav-actions">
+      <a href="jogar.html" class="btn btn-small play-button" data-play>Jogar</a>
+      <a href="#" class="btn btn-small btn-ghost nav-community" data-fluxer hidden target="_blank" rel="noopener">Fluxer ↗</a>
+      <button type="button" class="nav-toggle" id="navToggle" aria-label="Abrir menu" aria-controls="siteNavigation" aria-expanded="false" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path class="menu-bars" d="M4 5h16v2H4zM4 11h16v2H4zM4 17h16v2H4z"/><path class="menu-cross" d="M5 5h3v3H5zM8 8h3v3H8zM11 11h3v3h-3zM14 14h3v3h-3zM17 17h3v3h-3zM17 5h3v3h-3zM14 8h3v3h-3zM8 14h3v3H8zM5 17h3v3H5z"/></svg>
+      </button>
+    </div>
+    <noscript><p class="noscript-ip">IP do servidor: <strong>astralmc.online</strong></p></noscript>
+  </header>
+
+  <main id="conteudo" tabindex="-1">
+    <header class="page-header">
+      <p class="eyebrow"><svg class="pixel-icon" aria-hidden="true" focusable="false"><use href="icons.svg#spark" /></svg>A experiência completa</p>
+      <h1>Instale o <span data-name>Astral</span><br><span class="text-accent" data-launcher-name>no seu launcher.</span></h1>
+      <p class="tagline">O mesmo modpack, com um caminho para cada launcher. Escolha o seu e siga os passos abaixo.</p>
+      <ul class="identity-tags" aria-label="Versões do modpack">
+        <li>Minecraft <span data-modpack-minecraft>26.3</span></li><li data-modpack-loader>Fabric 0.19.5</li><li>Pack <span data-modpack-version>1.0.0</span></li>
+      </ul>
+      <p class="access-note">Windows · Linux · macOS</p>
+    </header>
+
+    <nav class="launcher-tabs" aria-label="Guias de instalação">
+      <a class="launcher-prism" href="instalar.html?launcher=prism" data-launcher-tab="prism"><svg class="pixel-icon" aria-hidden="true" focusable="false"><use href="icons.svg#prism" /></svg>Prism Launcher</a>
+      <a class="launcher-sklauncher" href="instalar.html?launcher=sklauncher" data-launcher-tab="sklauncher"><svg class="pixel-icon" aria-hidden="true" focusable="false"><use href="icons.svg#launcher" /></svg>SKlauncher</a>
+      <a class="launcher-modrinth" href="instalar.html?launcher=modrinth" data-launcher-tab="modrinth"><svg class="pixel-icon" aria-hidden="true" focusable="false"><use href="icons.svg#modrinth" /></svg>Modrinth App</a>
+    </nav>
+
+    <section class="block download-card" aria-labelledby="downloadTitle">
+      <div>
+        <p class="eyebrow">Seu modpack</p>
+        <h2 id="downloadTitle" data-modpack-file>Astral.mrpack</h2>
+        <p id="downloadStatus" class="muted" role="status" aria-live="polite">Baixe o pacote e importe no launcher escolhido.</p>
+      </div>
+      <a class="btn" href="downloads/Astral.mrpack" download="Astral.mrpack" data-modpack-download>Baixar modpack <span aria-hidden="true">↓</span></a>
+      <p class="download-hint muted">Não é preciso descompactar o arquivo nem instalar os mods um por um. O launcher faz isso ao importar o pacote.</p>
+    </section>
+
+    <section class="installation-guide" data-launcher-guide="prism" aria-labelledby="prismTitle">
+      <h2 id="prismTitle">Passo a passo · Prism Launcher</h2>
+      <ol class="installation-steps">
+        <li><div><h3>Abra o Prism e conecte sua conta</h3><p>Se ainda não tiver o launcher, <a href="https://prismlauncher.org/download/" target="_blank" rel="noopener">baixe o Prism Launcher para seu sistema <span aria-hidden="true">↗</span></a>. Abra o programa e adicione sua conta Microsoft com Minecraft Java em <strong>Configurações → Contas</strong>.</p></div></li>
+        <li><div><h3>Importe o arquivo do Astral</h3><p>Clique em <strong>Adicionar instância → Importar</strong> e selecione o arquivo <strong data-modpack-file>Astral.mrpack</strong> na pasta de downloads. Confirme a criação da instância.</p><p class="step-path">Adicionar instância <span aria-hidden="true">→</span> Importar <span aria-hidden="true">→</span> <span data-modpack-file>Astral.mrpack</span></p></div></li>
+        <li><div><h3>Aguarde a instalação e inicie o jogo</h3><p>O Prism baixa os mods e prepara o Minecraft com <span data-modpack-loader>Fabric 0.19.5</span>. Quando terminar, selecione a instância <strong data-name>Astral</strong> e clique em <strong>Jogar</strong>. Se o launcher pedir o Java, siga a configuração indicada por ele.</p></div></li>
+      </ol>
+    </section>
+
+    <section class="installation-guide" data-launcher-guide="sklauncher" aria-labelledby="sklauncherTitle">
+      <h2 id="sklauncherTitle">Passo a passo · SKlauncher</h2>
+      <ol class="installation-steps">
+        <li><div><h3>Abra o SKlauncher com suporte à importação</h3><p>Este guia usa o <strong>SKlauncher 4.0 (beta)</strong>, que permite importar modpacks arrastando o arquivo. <a href="https://next.skmedix.pl/downloads" target="_blank" rel="noopener">Baixe a versão 4.0 para seu sistema <span aria-hidden="true">↗</span></a>, abra o launcher e selecione sua conta.</p></div></li>
+        <li><div><h3>Arraste o pacote para o launcher</h3><p>Encontre <strong data-modpack-file>Astral.mrpack</strong> na pasta de downloads e arraste o arquivo para a janela do SKlauncher. Confirme a importação do modpack.</p><p class="step-path"><span data-modpack-file>Astral.mrpack</span> <span aria-hidden="true">→</span> Janela do SKlauncher <span aria-hidden="true">→</span> Importar</p></div></li>
+        <li><div><h3>Espere o download dos mods e jogue</h3><p>Aguarde o launcher preparar a instância com o Minecraft e o Fabric definidos pelo pacote. Depois, selecione <strong data-name>Astral</strong> na biblioteca e clique em <strong>Jogar</strong>.</p></div></li>
+      </ol>
+    </section>
+
+    <section class="installation-guide" data-launcher-guide="modrinth" aria-labelledby="modrinthTitle">
+      <h2 id="modrinthTitle">Passo a passo · Modrinth App</h2>
+      <ol class="installation-steps">
+        <li><div><h3>Abra o Modrinth App e entre na sua conta</h3><p><a href="https://modrinth.com/app" target="_blank" rel="noopener">Baixe o Modrinth App para seu sistema <span aria-hidden="true">↗</span></a>, se necessário. Abra o aplicativo e conecte sua conta Microsoft com Minecraft Java para jogar.</p></div></li>
+        <li><div><h3>Importe o modpack baixado</h3><p>Abra a criação de instâncias pelo botão <strong>+</strong> e escolha <strong>Import from file / Importar de arquivo</strong>. Selecione <strong data-modpack-file>Astral.mrpack</strong> e confirme a importação.</p><p class="step-path">+ Criar instância <span aria-hidden="true">→</span> Importar de arquivo <span aria-hidden="true">→</span> <span data-modpack-file>Astral.mrpack</span></p></div></li>
+        <li><div><h3>Deixe o aplicativo preparar tudo</h3><p>O Modrinth baixa as versões dos mods indicadas pelo pack e aplica as configurações. Ao terminar, abra a instância <strong data-name>Astral</strong> na biblioteca e clique em <strong>Play / Jogar</strong>.</p></div></li>
+      </ol>
+    </section>
+
+    <section class="block page-cta" aria-labelledby="readyTitle">
+      <p class="eyebrow">Último passo</p>
+      <h2 id="readyTitle">Tudo pronto. Nos vemos no Astral.</h2>
+      <p class="muted">Com o jogo aberto, entre no servidor pelo menu do modpack. Se precisar adicionar o endereço, use <strong>Multijogador → Adicionar servidor</strong>:</p>
+      <button type="button" class="ip" data-copy-ip><span data-server-address>astralmc.online</span><small data-copy-hint>clique para copiar</small></button>
+      <p class="tiny muted"><a href="jogar.html#loginTitle">Veja como se autenticar no primeiro acesso.</a> Precisa de ajuda? <a href="#" data-fluxer hidden target="_blank" rel="noopener">Fale com a comunidade no Fluxer.</a></p>
+    </section>
+    <p class="installation-exit"><a href="jogar.html#conectar">Prefiro continuar sem o modpack <span aria-hidden="true">→</span></a></p>
+  </main>
+
+  <footer>
+    <div class="footer-meta"><p><span data-name>Astral</span> · Feito de blocos. Lembrado por pessoas.</p><p class="footer-legal">Não afiliado à Mojang ou à Microsoft.</p></div>
+    <button class="motion-toggle" type="button" data-motion-toggle aria-pressed="false" hidden><span class="motion-icon" aria-hidden="true"></span><span data-motion-label>Pausar animações</span></button>
+  </footer>
+  <script src="config.js?v=15"></script>
+  <script src="app.js?v=15"></script>
+  <script src="instalar.js?v=15"></script>
+</body>
+</html>

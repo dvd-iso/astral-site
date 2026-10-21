@@ -149,23 +149,35 @@ body[data-page="inicio"] main { display: flex; flex-direction: column; justify-c
 .nav .btn-small { padding: 6px 12px; font-size: 13px; }
 .nav .btn:hover, .nav .btn:active { transform: none; }
 
-/* Jogar é uma ação de copiar, com largura estável entre os estados. */
-.play-button { display: inline-grid; grid-template-areas: "content"; align-items: center; text-align: center; white-space: nowrap; cursor: copy; }
-.play-button > span { grid-area: content; transition: opacity .16s ease, transform .16s ease; }
-.play-label { opacity: 1; }
-.play-address, .play-feedback { opacity: 0; transform: translateY(4px); }
-.play-button:focus-visible .play-label { opacity: 0; transform: translateY(-4px); }
-.play-button:focus-visible .play-address { opacity: 1; transform: none; }
-@media (hover: hover) {
-  .play-button:hover .play-label { opacity: 0; transform: translateY(-4px); }
-  .play-button:hover .play-address { opacity: 1; transform: none; }
-}
-.play-button[data-copy-state="copied"] { background: #a9d4a6; outline-color: #d4edca; }
-.play-button[data-copy-state] .play-label, .play-button[data-copy-state] .play-address { opacity: 0; }
-.play-button[data-copy-state] .play-feedback { opacity: 1; transform: none; }
+/* Jogar abre a escolha de launcher; copiar o IP é uma ação separada. */
+.play-button { display: inline-flex; align-items: center; justify-content: center; text-align: center; white-space: nowrap; }
+.ip[data-copy-state="copied"] { border-color: var(--green); }
 .copy-toast { position: fixed; z-index: 30; left: 50%; bottom: 20px; width: max-content; max-width: calc(100% - 32px); padding: 12px 18px; border: 1px solid var(--yellow); background: #14131f; color: var(--text); font-size: 12px; text-align: center; overflow-wrap: anywhere; opacity: 0; transform: translate(-50%, 8px); pointer-events: none; transition: opacity .16s ease, transform .16s ease; }
 .copy-toast.is-visible { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
 .clipboard-fallback { position: fixed; left: 0; top: 0; width: 1px; height: 1px; padding: 0; border: 0; opacity: 0; font-size: 16px; pointer-events: none; }
+
+/* ---------- Escolha de launcher ---------- */
+html.play-dialog-open { overflow: hidden; }
+.play-dialog { width: min(880px, calc(100% - 40px)); max-width: none; max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px); margin: auto; padding: 38px; overflow-y: auto; border: 2px solid var(--border2); border-top-color: var(--purple); background: radial-gradient(ellipse at 50% 0, rgba(139, 108, 246, .12), transparent 70%), #0e0e18; color: var(--text); font: inherit; box-shadow: 0 24px 100px rgba(0, 0, 0, .6); }
+.play-dialog::backdrop { background: rgba(5, 5, 8, .84); backdrop-filter: blur(8px); }
+.dialog-close { position: absolute; top: 12px; right: 12px; width: 44px; height: 44px; padding: 0; border: 1px solid var(--border2); background: transparent; color: var(--muted); font: inherit; font-size: 25px; cursor: pointer; }
+.dialog-close:hover { color: var(--text); border-color: var(--purple); }
+.play-dialog .eyebrow { padding-right: 30px; }
+.play-dialog h2 { margin: 0 0 16px; font-size: clamp(21px, 3.5vw, 29px); line-height: 1.55; }
+.play-dialog h2:focus { outline: none; }
+.play-dialog > .muted { max-width: 680px; margin: 0; font-size: 12px; }
+.launcher-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 26px 0 18px; }
+.launcher-prism { --launcher-accent: #b39afa; }
+.launcher-sklauncher { --launcher-accent: #7eafff; }
+.launcher-modrinth { --launcher-accent: #72d5a2; }
+.launcher-option { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; padding: 24px 18px; border: 1px solid var(--border2); background: rgba(255, 255, 255, .025); color: var(--text); transition: border-color .2s, transform .2s, background .2s; }
+.launcher-option:hover { text-decoration: none; border-color: var(--launcher-accent); transform: translateY(-3px); background: rgba(255, 255, 255, .05); }
+.launcher-icon { display: block; width: 40px; height: 40px; margin-bottom: 4px; color: var(--launcher-accent); shape-rendering: crispEdges; }
+.launcher-name { font-weight: 700; font-size: 13px; }
+.launcher-action { color: var(--launcher-accent); font-size: 10px; margin-top: auto; }
+.play-dialog .launcher-help { font-size: 10px; margin: 0 0 14px; }
+.skip-modpack { display: inline-block; padding: 8px 0; color: var(--muted); font-size: 11px; text-decoration: underline; text-underline-offset: 4px; }
+.skip-modpack:hover { color: var(--text); }
 
 /* ---------- Blocos (todas as seções têm o mesmo formato) ---------- */
 .block { background: var(--surface); border: 2px solid var(--border); padding: 26px 28px; margin: 0 0 24px; }
@@ -237,6 +249,32 @@ body[data-page="inicio"] main { display: flex; flex-direction: column; justify-c
 /* ---------- Entrada e autenticação ---------- */
 .access-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .login-command { display: block; padding: 12px; margin: 12px 0; border: 1px solid var(--border2); background: rgba(0, 0, 0, .35); color: var(--text); font: inherit; font-size: 12px; overflow-wrap: anywhere; }
+
+/* ---------- Modpack e guias de instalação ---------- */
+.modpack-invite { display: flex; justify-content: space-between; align-items: center; gap: 24px; }
+.modpack-invite h2 { font-size: 18px; margin: 0 0 10px; }
+.modpack-invite p { margin: 0; max-width: 550px; font-size: 12px; }
+.modpack-invite .btn { flex: none; white-space: nowrap; }
+.launcher-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 0 0 24px; }
+.launcher-tabs a { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 48px; padding: 12px; color: var(--muted); border: 1px solid var(--border2); background: var(--surface); font-size: 12px; }
+.launcher-tabs a:hover, .launcher-tabs a[aria-current="page"] { color: var(--launcher-accent); border-color: var(--launcher-accent); text-decoration: none; }
+.download-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 18px 24px; }
+.download-card .eyebrow { font-size: 10px; margin-bottom: 8px; }
+.download-card h2 { margin: 0 0 10px; font-size: 20px; overflow-wrap: anywhere; }
+.download-card p { margin: 0; font-size: 12px; }
+.download-card .download-hint { grid-column: 1 / -1; border-top: 1px solid var(--border2); padding-top: 16px; font-size: 11px; }
+.installation-guide { margin: 36px 0; }
+.installation-guide > h2 { font-size: 18px; margin: 0 0 20px; line-height: 1.6; }
+.installation-steps { display: grid; gap: 12px; list-style: none; padding: 0; margin: 0; counter-reset: installation-step; }
+.installation-steps li { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 18px; padding: 24px; border: 1px solid var(--border2); background: var(--surface); counter-increment: installation-step; }
+.installation-steps li::before { content: counter(installation-step, decimal-leading-zero); color: var(--yellow); font-size: 21px; line-height: 1.5; }
+.installation-steps h3 { font-size: 15px; line-height: 1.6; margin: 0 0 10px; }
+.installation-steps p { color: var(--muted); font-size: 12px; margin: 0; }
+.installation-steps strong { color: var(--text); }
+.installation-steps .step-path { padding: 12px; margin-top: 16px; border-left: 2px solid var(--purple); background: rgba(139, 108, 246, .07); color: #c3b3ec; font-size: 11px; overflow-wrap: anywhere; }
+.page-cta .ip { margin-top: 22px; max-width: 100%; overflow-wrap: anywhere; }
+.installation-exit { text-align: center; font-size: 11px; margin: 28px 0 40px; }
+.installation-exit a { color: var(--muted); }
 
 /* ---------- A visão do Astral ---------- */
 .manifesto { display: grid; grid-template-columns: .85fr 1.4fr; gap: 24px 48px; padding: 38px; }
@@ -328,6 +366,20 @@ footer { width: calc(100% - 32px); max-width: calc(var(--wrap) - 32px); margin: 
   .memory-card { padding: 24px; }
   .entry-steps { grid-template-columns: minmax(0, 1fr); gap: 8px; }
   .entry-steps li { padding: 12px 16px; }
+  .modpack-invite { flex-direction: column; align-items: stretch; }
+  .download-card { grid-template-columns: minmax(0, 1fr); }
+  .download-card .btn { justify-self: start; }
+  .launcher-tabs { gap: 8px; }
+  .launcher-tabs a { flex-direction: column; gap: 8px; font-size: 10px; padding: 12px 6px; text-align: center; }
+  .play-dialog { width: calc(100% - 24px); max-height: calc(100vh - 24px); max-height: calc(100dvh - 24px); padding: 28px 20px; }
+  .play-dialog .eyebrow { font-size: 10px; }
+  .launcher-options { grid-template-columns: minmax(0, 1fr); gap: 10px; margin-top: 22px; }
+  .launcher-option { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 5px 16px; align-items: center; padding: 16px; }
+  .launcher-icon { grid-row: span 2; width: 36px; height: 36px; margin: 0; }
+  .launcher-action { margin: 0; }
+  .skip-modpack { min-height: 44px; }
+  .installation-steps li { padding: 20px 16px; grid-template-columns: 28px minmax(0, 1fr); gap: 12px; }
+  .installation-steps li::before { font-size: 18px; }
   footer { flex-direction: column; text-align: center; gap: 14px; margin-top: 24px; }
   button, .btn { min-height: 44px; }
   .btn:not(.play-button) { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
@@ -355,9 +407,6 @@ footer { width: calc(100% - 32px); max-width: calc(var(--wrap) - 32px); margin: 
   .nav-actions { grid-column: 2; grid-row: 1; gap: 8px; }
   .nav .nav-community { display: none; }
   .nav .play-button { width: 104px; min-width: 104px; height: 44px; padding: 6px 8px; font-size: 12px; }
-  .nav .play-button .play-address { display: none; }
-  .nav .play-button:not([data-copy-state]) .play-label { opacity: 1; transform: none; }
-  .nav .play-feedback { font-size: 11px; }
   .nav .btn::after { display: none; }
   .nav nav { grid-column: 1 / -1; grid-row: 2; width: 100%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 12px 0 2px; border-top: 1px solid var(--border2); max-height: calc(100vh - 76px); max-height: calc(100svh - 76px); overflow-y: auto; }
   .nav nav a, .nav .nav-mobile-community { display: flex; align-items: center; justify-content: center; min-height: 48px; min-width: 0; padding: 10px 8px; border: 1px solid var(--border2); background: var(--surface2); text-align: center; font-size: 14px; line-height: 1.4; }
