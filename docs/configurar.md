@@ -18,9 +18,11 @@ Site estático em HTML/CSS/JavaScript, publicado no **GitHub Pages**.
 
 Todas usam `style.css`, `config.js` e `app.js`. A barra superior reúne Início,
 Sobre e Regras. **Jogar é um botão de copiar o IP**: no desktop, revela o endereço
-ao receber hover ou foco pelo teclado; no celular, mostra o endereço junto do
-rótulo e copia com um toque. A confirmação aparece no botão e em um aviso
-acessível. A página de ajuda continua disponível para os links dos guias.
+ao receber hover ou foco pelo teclado. No celular, o botão Jogar permanece
+visível e copia com um toque; Início, Sobre, Regras e Fluxer ficam no menu
+compacto. O menu fecha ao escolher um link, tocar fora ou usar Escape. A
+confirmação da cópia aparece no botão e em um aviso acessível. A página de ajuda
+continua disponível para os links dos guias.
 
 ## Configuração
 

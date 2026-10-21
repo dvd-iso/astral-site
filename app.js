@@ -26,6 +26,42 @@
     addEventListener("hashchange", redirectLegacyLink);
   }
 
+  // ---------- Navegação compacta no celular ----------
+  const navToggle = $("navToggle");
+  const siteNavigation = $("siteNavigation");
+  if (navToggle && siteNavigation) {
+    const header = navToggle.closest(".nav");
+    const mobileNavigation = matchMedia("(max-width: 840px)");
+    function setMenu(open) {
+      const expanded = mobileNavigation.matches && open;
+      navToggle.hidden = !mobileNavigation.matches;
+      navToggle.setAttribute("aria-expanded", String(expanded));
+      navToggle.setAttribute("aria-label", expanded ? "Fechar menu" : "Abrir menu");
+      siteNavigation.hidden = mobileNavigation.matches && !expanded;
+    }
+    setMenu(false);
+    navToggle.addEventListener("click", (event) => {
+      const open = navToggle.getAttribute("aria-expanded") !== "true";
+      setMenu(open);
+      if (open && mobileNavigation.matches && event.detail === 0) {
+        siteNavigation.querySelector("a")?.focus({ preventScroll: true });
+      }
+    });
+    siteNavigation.addEventListener("click", (event) => {
+      if (event.target.closest("a")) setMenu(false);
+    });
+    document.addEventListener("click", (event) => {
+      if (!header.contains(event.target)) setMenu(false);
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && navToggle.getAttribute("aria-expanded") === "true") {
+        setMenu(false);
+        navToggle.focus({ preventScroll: true });
+      }
+    });
+    mobileNavigation.addEventListener("change", () => setMenu(false));
+  }
+
   // ---------- Preferência de movimento compartilhada entre as páginas ----------
   const motionQuery = matchMedia("(prefers-reduced-motion: reduce)");
   const motionListeners = new Set();
@@ -163,6 +199,7 @@
       field.className = "clipboard-fallback";
       field.value = cfg.serverAddress;
       field.readOnly = true;
+      field.tabIndex = -1;
       field.setAttribute("aria-hidden", "true");
       const focused = document.activeElement;
       document.body.append(field);
