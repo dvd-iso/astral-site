@@ -214,15 +214,15 @@
       <p id="playDialogDescription" class="muted">Instale o modpack do <span data-pack-name></span> com tudo preparado para você. Escolha seu launcher para baixar o pacote e abrir o passo a passo.</p>
       <div class="launcher-options" role="group" aria-label="Escolha seu launcher">
         <a class="launcher-option launcher-prism" href="instalar.html?launcher=prism&amp;download=1">
-          <svg class="launcher-icon" aria-hidden="true" focusable="false"><use href="icons.svg#prism" /></svg>
+          <img class="launcher-logo launcher-icon" src="marca/launchers/prism.svg" width="48" height="48" alt="" aria-hidden="true" />
           <span class="launcher-name">Prism Launcher</span><span class="launcher-action">Instalar no Prism <span aria-hidden="true">→</span></span>
         </a>
         <a class="launcher-option launcher-sklauncher" href="instalar.html?launcher=sklauncher&amp;download=1">
-          <svg class="launcher-icon" aria-hidden="true" focusable="false"><use href="icons.svg#launcher" /></svg>
+          <img class="launcher-logo launcher-icon" src="marca/launchers/sklauncher.svg" width="48" height="48" alt="" aria-hidden="true" />
           <span class="launcher-name">SKlauncher</span><span class="launcher-action">Instalar no SKlauncher <span aria-hidden="true">→</span></span>
         </a>
         <a class="launcher-option launcher-modrinth" href="instalar.html?launcher=modrinth&amp;download=1">
-          <svg class="launcher-icon" aria-hidden="true" focusable="false"><use href="icons.svg#modrinth" /></svg>
+          <img class="launcher-logo launcher-icon" src="marca/launchers/modrinth.svg" width="48" height="48" alt="" aria-hidden="true" />
           <span class="launcher-name">Modrinth App</span><span class="launcher-action">Instalar no Modrinth <span aria-hidden="true">→</span></span>
         </a>
       </div>

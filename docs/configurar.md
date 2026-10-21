@@ -24,8 +24,8 @@ opções e o link discreto **Continuar sem baixar o modpack**. Ao escolher um
 launcher, o visitante abre seu tutorial e o navegador recebe o pedido de download.
 A janela fecha pelo botão de fechar, Escape ou clique fora, e devolve o foco ao
 link que a abriu. No celular, o botão Jogar permanece visível; os links da
-navegação ficam no menu compacto. Os botões de copiar o IP continuam nas páginas
-de acesso e instalação, com confirmação acessível.
+navegação ficam no menu compacto. O IP e o botão de copiar aparecem na página
+de acesso para quem escolhe continuar sem o modpack, com confirmação acessível.
 
 ## Configuração
 
@@ -44,7 +44,9 @@ Edite `config.js`:
 | `memoryFragments` | trechos do livro interativo de Sobre |
 
 A página Jogar explica o acesso para contas originais e para jogadores sem conta
-premium. O nLogin é instalado e configurado no servidor Minecraft.
+premium. O cadastro e a autenticação são feitos pela **interface do nLogin dentro
+do Minecraft**, seguindo as orientações exibidas na tela. As contas originais
+reconhecidas têm acesso automático. O plugin é configurado no servidor Minecraft.
 
 ## Modpack e instalação
 
@@ -68,6 +70,12 @@ premium. O nLogin é instalado e configurado no servidor Minecraft.
   Minecraft Java; os respectivos passos informam isso.
 - Sem JavaScript, Jogar leva à página de acesso; o download manual e todos os
   passos de instalação continuam disponíveis.
+- Os logotipos oficiais dos launchers ficam em `marca/launchers/`, com as fontes
+  e os créditos no README desse diretório. São imagens SVG locais, exibidas com
+  suas proporções originais na janela de escolha e nos links dos guias.
+- O último passo do tutorial orienta a entrar pelo botão Jogar do próprio
+  modpack. O endereço fica em `jogar.html#conectar`, acessível pelo link para
+  continuar sem baixar o pacote.
 
 ## Lore e movimento
 
@@ -81,6 +89,9 @@ completo de cada regra permanece em `rules`, também lido pelos guias do bot.
 
 - `lore` e `memoryFragments` ficam em `config.js`.
 - `style.css` cuida das animações e microinterações.
+- A janela de launchers abre com fade e escala suaves, com os cartões entrando
+  em sequência. A animação é repetida ao reabrir e respeita a opção de pausar
+  animações e a preferência de movimento reduzido do sistema.
 - `app.js` cuida do céu, do livro, das regras ilustradas, da cópia do IP e da
   preferência de movimento, além da janela de escolha do launcher.
 - **Pausar animações**, no rodapé, guarda a escolha entre as páginas.

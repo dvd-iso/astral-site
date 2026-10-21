@@ -33,17 +33,4 @@
   <symbol id="spark" viewBox="0 0 16 16">
     <path d="M7 1h2v4h2v2h4v2h-4v2H9v4H7v-4H5V9H1V7h4V5h2z" />
   </symbol>
-  <symbol id="prism" viewBox="0 0 24 24">
-    <path fill="#f2c94c" d="M10 1h4v3h3v3h3v3h3v4h-3v3h-3v3h-3v3h-4v-3H7v-3H4v-3H1v-4h3V7h3V4h3z" />
-    <path fill="#8b6cf6" d="M10 5h4v3h3v3h3v3h-3v3h-3v3h-4v-3H7v-3H4v-3h3V8h3z" />
-    <path fill="#5b93f7" d="M10 9h4v3h3v2h-3v3h-4v-3H7v-2h3z" />
-  </symbol>
-  <symbol id="launcher" viewBox="0 0 24 24">
-    <path fill="currentColor" d="M3 3h18v18H3z" />
-    <path fill="#11131f" d="M6 6h5v2H8v2h3v5H6v-2h3v-1H6zM13 6h2v4h1V8h2V6h2v3h-2v2h-1v2h1v2h2v3h-2v-2h-2v-2h-1v4h-2z" />
-  </symbol>
-  <symbol id="modrinth" viewBox="0 0 24 24">
-    <path fill="currentColor" d="M8 1h8v2h4v4h2v4h-6V8h-2V6h-4v2H8v2H6v4h2v2h2v2h4v-2h3v-3h5v4h-2v4h-4v2H8v-2H4v-4H2V7h2V3h4z" />
-    <path fill="currentColor" d="M10 9h4v2h-2v2h-2v2H8v-4h2z" />
-  </symbol>
 </svg>
