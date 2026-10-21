@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; frame-src 'none'; connect-src 'self' https://api.mcsrvstat.us; img-src 'self' data: https://mc-heads.net; style-src 'self' 'unsafe-inline'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; frame-src 'none'; connect-src 'self' https://api.mcsrvstat.us; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'" />
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <meta name="theme-color" content="#050508" />
   <title>Regras — Astral</title>
   <meta name="description" content="Leia as regras do Astral: convivência, construções, jogo justo e os combinados para conflitos de RPG antes de entrar no mundo." />
   <link rel="preload" href="fonts/Monocraft.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="style.css?v=12" />
+  <link rel="stylesheet" href="style.css?v=13" />
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
 </head>
 <body data-page="regras" data-page-title="Regras">
@@ -32,49 +32,35 @@
       <a href="index.html">Início</a>
       <a href="sobre.html">Sobre</a>
       <a href="regras.html" aria-current="page">Regras</a>
-      <a href="jogar.html" class="btn btn-small">Jogar</a>
+      <button type="button" class="btn btn-small play-button" data-copy-ip aria-label="Jogar: copiar astralmc.online">
+        <span class="play-label" aria-hidden="true">Jogar</span>
+        <span class="play-address" data-server-address aria-hidden="true">astralmc.online</span>
+        <span class="play-feedback" data-copy-feedback aria-hidden="true">IP copiado!</span>
+      </button>
     </nav>
     <a href="#" class="btn btn-small btn-ghost nav-community" data-fluxer hidden target="_blank" rel="noopener">Fluxer ↗</a>
+    <noscript><p class="noscript-ip">IP do servidor: <strong>astralmc.online</strong></p></noscript>
   </header>
 
   <main id="conteudo" tabindex="-1">
     <header class="page-header">
       <p class="eyebrow"><svg class="pixel-icon" aria-hidden="true" focusable="false"><use href="icons.svg#scroll" /></svg>Nossos combinados</p>
       <h1>Um mundo de todos.<br><span class="text-accent">Cuidado de cada um.</span></h1>
-      <p class="tagline">Nossas regras existem para que a criatividade, as amizades e as boas memórias tenham espaço para crescer.</p>
-      <ul class="identity-tags" aria-label="Princípios de convivência"><li>Respeito</li><li>Jogo justo</li><li>Cuidado com o mundo</li></ul>
+      <p class="tagline">Os combinados para construir, explorar e conviver no Astral.</p>
     </header>
 
-    <section id="regras" class="block" aria-labelledby="rulesTitle" data-reveal>
-      <header class="block-head">
-        <h2 id="rulesTitle">Regras do servidor</h2>
-      </header>
+    <section id="regras" class="rules-section" aria-labelledby="rulesTitle">
+      <h2 class="sr-only" id="rulesTitle">Regras do servidor</h2>
       <ol class="rules-list" id="rulesList"></ol>
-    </section>
-
-    <section class="block page-cta" data-reveal>
-      <p class="eyebrow">Respeito é a nossa base</p>
-      <h2>Vamos construir algo bom juntos?</h2>
-      <p class="muted">Se esses combinados fazem sentido para você, escolha seu lugar no mundo e venha jogar com a gente.</p>
-      <div class="hero-actions">
-        <a href="jogar.html" class="btn">Entrar no Astral</a>
-        <a href="#" class="btn btn-ghost" data-fluxer hidden target="_blank" rel="noopener">Tirar dúvidas no Fluxer</a>
-      </div>
     </section>
   </main>
 
   <footer>
-    <svg class="pixel-star foot-star" aria-hidden="true"><use href="#star" /></svg>
-    <p class="footer-promise">Feito de blocos. Lembrado por pessoas.</p>
-    <nav class="footer-nav" aria-label="Navegação do rodapé">
-      <a href="index.html">Início</a><a href="sobre.html">Sobre</a><a href="regras.html">Regras</a><a href="jogar.html">Jogar</a>
-    </nav>
-    <p class="lore-foot" data-lore="3"></p>
-    <p><span data-name>Astral</span> · <a href="#" data-fluxer hidden target="_blank" rel="noopener">Fluxer</a> · Não afiliado à Mojang ou à Microsoft.</p>
+    <div class="footer-meta"><p><span data-name>Astral</span> · Feito de blocos. Lembrado por pessoas.</p><p class="footer-legal">Não afiliado à Mojang ou à Microsoft.</p></div>
     <button class="motion-toggle" type="button" data-motion-toggle aria-pressed="false" hidden><span class="motion-icon" aria-hidden="true"></span><span data-motion-label>Pausar animações</span></button>
   </footer>
 
-  <script src="config.js?v=12"></script>
-  <script src="app.js?v=12"></script>
+  <script src="config.js?v=13"></script>
+  <script src="app.js?v=13"></script>
 </body>
 </html>

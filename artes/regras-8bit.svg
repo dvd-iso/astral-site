@@ -1,0 +1,151 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 72" shape-rendering="crispEdges">
+  <defs>
+    <g id="chao">
+      <path d="M8 60h80v4H8z" fill="#29333e"/>
+      <path d="M12 60h12v2H12zM32 60h8v2h-8zM56 60h12v2H56zM76 60h8v2h-8z" fill="#537768"/>
+      <path d="M16 66h8v2h-8zM72 66h8v2h-8z" fill="#1b2631"/>
+    </g>
+    <g id="pessoa-roxa">
+      <path d="M4 0h12v2h4v12h-2v12h-2v8H4v-8H2V14H0V4h4z" fill="#292736"/>
+      <path d="M4 4h12v10H4zM0 18h4v8H0zM16 18h4v8h-4z" fill="#c99876"/>
+      <path d="M4 0h12v4H4zM2 4h4v4H2zM14 4h4v6h-4z" fill="#59403d"/>
+      <path d="M6 8h2v2H6zM12 8h2v2h-2z" fill="#292736"/>
+      <path d="M8 12h4v2H8z" fill="#a66c5f"/>
+      <path d="M2 14h16v10H2z" fill="#9a7aca"/>
+      <path d="M2 14h6v8H2zM8 22h10v2H8z" fill="#715b9d"/>
+      <path d="M4 24h4v8H4zM12 24h4v8h-4z" fill="#4b6178"/>
+      <path d="M2 32h6v2H2zM12 32h6v2h-6z" fill="#292736"/>
+    </g>
+    <g id="pessoa-azul">
+      <path d="M4 0h12v2h4v12h-2v12h-2v8H4v-8H2V14H0V4h4z" fill="#292736"/>
+      <path d="M4 4h12v10H4zM0 18h4v8H0zM16 18h4v8h-4z" fill="#b98267"/>
+      <path d="M4 0h12v4H4zM2 4h4v8H2zM14 4h4v4h-4z" fill="#3b3544"/>
+      <path d="M6 8h2v2H6zM12 8h2v2h-2z" fill="#292736"/>
+      <path d="M8 12h4v2H8z" fill="#915e55"/>
+      <path d="M2 14h16v10H2z" fill="#7da7c5"/>
+      <path d="M2 14h6v8H2zM8 22h10v2H8z" fill="#577895"/>
+      <path d="M4 24h4v8H4zM12 24h4v8h-4z" fill="#655777"/>
+      <path d="M2 32h6v2H2zM12 32h6v2h-6z" fill="#292736"/>
+    </g>
+    <g id="casa">
+      <path d="M4 14h24v22H4z" fill="#bc956b"/>
+      <path d="M4 22h24v2H4zM4 30h24v2H4z" fill="#946b4e"/>
+      <path d="M0 14h4v-4h4V6h4V2h8v4h4v4h4v4h4v4H0z" fill="#71556b"/>
+      <path d="M4 12h4V8h4V4h8v4h4v4h4v2h-8v-4h-8v4H4z" fill="#a17788"/>
+      <path d="M14 24h8v12h-8z" fill="#574139"/>
+      <path d="M6 22h6v6H6z" fill="#9fc2c5"/>
+      <path d="M8 22h2v6H8zM6 24h6v2H6z" fill="#71556b"/>
+      <path d="M18 30h2v2h-2z" fill="#e6bd68"/>
+      <path d="M2 36h28v4H2z" fill="#655b59"/>
+    </g>
+    <g id="espada">
+      <path d="M16 8h12v8h6v6h6v6h6v6h6v8h8v8h-8v-4h-8v-6h-6v-6h-6v-6h-6v-6h-6v-6h-4z" fill="#3a5b71"/>
+      <path d="M20 12h4v6h6v6h6v6h6v6h6v6h-4v-4h-6v-6h-6v-6h-6v-6h-6z" fill="#a7d7d6"/>
+      <path d="M24 12h4v8h6v6h6v6h6v6h4v4h-6v-6h-6v-6h-6v-6h-6v-6h-2z" fill="#62a7b6"/>
+      <path d="M38 44h6v-6h4v6h8v4h-8v8h-4v-8h-6z" fill="#d6b16d"/>
+      <path d="M48 48h6v6h6v6h-6v-4h-6z" fill="#916c50"/>
+      <path d="M56 58h6v4h-6z" fill="#d6b16d"/>
+    </g>
+  </defs>
+
+  <symbol id="respeito" viewBox="0 0 96 72">
+    <use href="#chao"/>
+    <use href="#pessoa-roxa" x="12" y="26"/>
+    <use href="#pessoa-azul" x="64" y="26"/>
+    <path d="M8 6h28v14h-6v6h-4v-6H8zM60 6h28v14H70v6h-4v-6h-6z" fill="#dce1d5"/>
+    <path d="M14 12h16v2H14zM66 12h16v2H66z" fill="#7e99a3"/>
+    <path d="M42 28h4v4h4v-4h4v4h4v8h-4v4h-4v4h-4v-4h-4v-4h-4v-8h4z" fill="#ca8097"/>
+    <path d="M42 32h4v4h-4zM50 32h4v4h-4z" fill="#edb6bd"/>
+  </symbol>
+
+  <symbol id="construcoes" viewBox="0 0 96 72">
+    <use href="#chao"/>
+    <use href="#casa" x="8" y="20"/>
+    <path d="M50 34h36v26H50z" fill="#594139"/>
+    <path d="M52 36h32v10H52z" fill="#c19657"/>
+    <path d="M52 46h32v12H52z" fill="#996d42"/>
+    <path d="M54 38h28v2H54zM56 48h2v8h-2zM78 48h2v8h-2z" fill="#ddba75"/>
+    <path d="M64 30h10v4h4v12h-4v-10H64v10h-4V34h4z" fill="#e2d7a3"/>
+    <path d="M60 42h18v14H60z" fill="#e6bd68"/>
+    <path d="M62 44h14v2H62z" fill="#f6dda0"/>
+    <path d="M66 46h6v4h-2v4h-2v-4h-2z" fill="#71543f"/>
+    <path d="M62 12h4v4h4v-4h4v4h4v4h-4v4h-4v4h-4v-4h-4v-4h-4v-4h4z" fill="#90b89a"/>
+  </symbol>
+
+  <symbol id="jogo-justo" viewBox="0 0 96 72">
+    <use href="#chao"/>
+    <path d="M12 28h30v30H12z" fill="#485364"/>
+    <path d="M12 28h30v6H12zM12 34h6v24h-6z" fill="#728292"/>
+    <path d="M18 38h6v4h-6zM30 34h6v6h-6zM26 48h8v6h-8zM16 50h4v4h-4z" fill="#6db4c3"/>
+    <path d="M18 38h4v2h-4zM30 34h4v2h-4zM26 48h6v2h-6z" fill="#b0e3db"/>
+    <path d="M48 14h24v4h8v12h-6V22h-6v-4H48z" fill="#35586a"/>
+    <path d="M48 10h26v4h8v12h-4v-8h-8v-4H48z" fill="#9bd1d2"/>
+    <path d="M62 18h6v8h-4v8h-4v8h-4v8h-6v-6h4v-8h4v-8h4z" fill="#ba8b58"/>
+    <path d="M64 20h2v6h-4v8h-4v8h-4v6h-2v-6h4v-8h4v-8h4z" fill="#e1b577"/>
+    <path d="M66 48h4v4h4v-4h4v-4h4v-4h4v8h-4v4h-4v4h-4v4h-4v-4h-4z" fill="#92c6a0"/>
+  </symbol>
+
+  <symbol id="bugs" viewBox="0 0 96 72">
+    <use href="#chao"/>
+    <path d="M22 18h4v8h-4zM38 18h4v8h-4zM12 32h10v4H12zM10 44h12v4H10zM16 54h10v4H16zM42 32h10v4H42zM42 44h12v4H42zM38 54h10v4H38z" fill="#a87651"/>
+    <path d="M26 22h12v6h6v24h-6v6H26v-6h-6V28h6z" fill="#bc925c"/>
+    <path d="M26 26h12v6H26zM22 36h8v14h-8z" fill="#e3bd72"/>
+    <path d="M30 32h4v24h-4zM26 26h2v4h-2zM36 26h2v4h-2z" fill="#624b42"/>
+    <path d="M54 10h32v26H70v8h-4v-8H54z" fill="#d6e0dc"/>
+    <path d="M58 14h24v18H58z" fill="#7e9eae"/>
+    <path d="M68 16h4v10h-4zM68 28h4v2h-4z" fill="#e6dcc0"/>
+  </symbol>
+
+  <symbol id="espaco" viewBox="0 0 96 72">
+    <use href="#chao"/>
+    <use href="#casa" x="6" y="20"/>
+    <use href="#casa" x="58" y="20"/>
+    <path d="M40 44h2v16h-2zM54 44h2v16h-2zM40 48h4v2h-4zM52 48h4v2h-4z" fill="#a58d65"/>
+    <path d="M46 44h4v16h-4z" fill="#577d66"/>
+    <path d="M44 38h8v4h-8zM46 36h4v8h-4z" fill="#e5be78"/>
+    <path d="M46 38h4v4h-4z" fill="#f4dfae"/>
+    <path d="M42 10h4v4h-4zM50 10h4v4h-4zM46 10h4v2h-4z" fill="#829ba4"/>
+  </symbol>
+
+  <symbol id="pvp" viewBox="0 0 96 72">
+    <use href="#chao"/>
+    <use href="#espada"/>
+    <use href="#espada" transform="translate(96 0) scale(-1 1)"/>
+    <path d="M66 50h4v4h4v-4h4v-4h4v-4h4v8h-4v4h-4v4h-4v4h-4v-4h-4z" fill="#92c6a0"/>
+    <path d="M44 6h4v4h-4zM50 6h4v4h-4z" fill="#e4c989"/>
+  </symbol>
+
+  <symbol id="rpg" viewBox="0 0 96 72">
+    <use href="#chao"/>
+    <path d="M18 8h20v4h4v16h-4v4h-4v4H22v-4h-4v-4h-4V12h4z" fill="#d8b574"/>
+    <path d="M18 12h8v16h-4v-4h-4z" fill="#f0d89b"/>
+    <path d="M22 18h4v4h-4zM32 18h4v4h-4zM24 28h10v2H24z" fill="#705441"/>
+    <path d="M58 12h20v4h4v16h-4v4h-4v4H62v-4h-4v-4h-4V16h4z" fill="#9577b9"/>
+    <path d="M58 16h8v16h-4v-4h-4z" fill="#bba1d7"/>
+    <path d="M62 22h4v4h-4zM72 22h4v4h-4zM64 32h10v2H64z" fill="#514366"/>
+    <path d="M14 40h28l6 4 6-4h28v22H54l-6 4-6-4H14z" fill="#71596d"/>
+    <path d="M18 38h22l8 4 8-4h22v20H54l-6 4-6-4H18z" fill="#e6dfbe"/>
+    <path d="M46 42h4v18h-4zM24 44h14v2H24zM24 50h14v2H24zM58 44h14v2H58zM58 50h14v2H58z" fill="#b39b7a"/>
+  </symbol>
+
+  <symbol id="spam" viewBox="0 0 96 72">
+    <use href="#chao"/>
+    <path d="M10 12h40v12H18v4h-4v-4h-4z" fill="#e0dfd0"/>
+    <path d="M14 28h40v12H22v4h-4v-4h-4z" fill="#a7bbc2"/>
+    <path d="M10 44h40v12H18v4h-4v-4h-4z" fill="#7e96ac"/>
+    <path d="M16 16h26v2H16zM20 32h26v2H20zM16 48h26v2H16z" fill="#526879"/>
+    <path d="M64 16h16v4h6v6h4v16h-4v6h-6v4H64v-4h-6v-6h-4V26h4v-6h6z" fill="#704355"/>
+    <path d="M64 24h6v4h4v-4h6v6h-4v4h4v6h-6v-4h-4v4h-6v-6h4v-4h-4z" fill="#e2a0a7"/>
+  </symbol>
+
+  <symbol id="equipe" viewBox="0 0 96 72">
+    <use href="#chao"/>
+    <path d="M12 12h40v28h-4v8h-4v6h-6v4h-4v4h-4v-4h-6v-4h-6v-6h-4v-8h-2z" fill="#d2b779"/>
+    <path d="M16 16h32v22h-4v8h-4v6h-6v4h-4v-4h-6v-6h-4v-8h-4z" fill="#8064a4"/>
+    <path d="M16 16h8v22h4v12h-4v-6h-4v-8h-4z" fill="#9e80bc"/>
+    <path d="M30 20h4v8h8v4h-8v8h-4v-8h-8v-4h8z" fill="#f0d58d"/>
+    <path d="M28 26h8v8h-8z" fill="#fff0ba"/>
+    <path d="M60 10h26v28H70v6h-4v-6h-6z" fill="#dbe2d5"/>
+    <path d="M66 16h12v4h4v6h-8v4h-4v-8h8v-2H66zM70 32h4v4h-4z" fill="#66869d"/>
+  </symbol>
+</svg>

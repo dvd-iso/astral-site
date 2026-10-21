@@ -11,14 +11,16 @@ Site estático em HTML/CSS/JavaScript, publicado no **GitHub Pages**.
 
 | Página | Arquivo | Conteúdo |
 |---|---|---|
-| Início | `index.html` | apresentação, endereço, status e atalhos |
+| Início | `index.html` | apresentação curta, status e versão |
 | Sobre | `sobre.html` | proposta, RPG, progressão narrativa e comunidade |
-| Regras | `regras.html` | combinados definidos em `config.js` |
-| Jogar | `jogar.html` | versão, conexão e autenticação pelo nLogin |
+| Regras | `regras.html` | combinados ilustrados com cenas 8-bit |
+| Ajuda de acesso | `jogar.html` | instruções para links diretos e guias da comunidade |
 
-Todas usam `style.css`, `config.js` e `app.js`. O menu indica a página atual e
-permanece acessível no celular. O site apresenta o endereço e as orientações;
-o cadastro e o login acontecem dentro do Minecraft.
+Todas usam `style.css`, `config.js` e `app.js`. A barra superior reúne Início,
+Sobre e Regras. **Jogar é um botão de copiar o IP**: no desktop, revela o endereço
+ao receber hover ou foco pelo teclado; no celular, mostra o endereço junto do
+rótulo e copia com um toque. A confirmação aparece no botão e em um aviso
+acessível. A página de ajuda continua disponível para os links dos guias.
 
 ## Configuração
 
@@ -31,6 +33,7 @@ Edite `config.js`:
 | `serverVersion` | edição e versão exibidas |
 | `fluxerInviteUrl` | convite da comunidade, opcional |
 | `rules` | regras da página Regras |
+| `ruleCards` | título e ID da arte de cada regra, na mesma ordem de `rules` |
 | `lore` | fragmentos da história e suas fontes |
 | `memoryFragments` | trechos do livro interativo de Sobre |
 
@@ -40,19 +43,24 @@ premium. O nLogin é instalado e configurado no servidor Minecraft.
 ## Lore e movimento
 
 A página Sobre apresenta a sobrevivência com base vanilla, o foco social, o RPG
-e a progressão narrativa. A paisagem em pixel art é desenhada em SVG, com um
-botão para alternar entre noite e amanhecer.
+e a progressão narrativa, com o livro interativo dos fragmentos da lore.
+
+As nove ilustrações das regras ficam em **`artes/regras-8bit.svg`**. São cenas
+locais em grade de 96 × 72, com paleta limitada e bordas de pixel. O campo `art`
+de cada item de `ruleCards` corresponde ao ID de um símbolo desse SVG. O texto
+completo de cada regra permanece em `rules`, também lido pelos guias do bot.
 
 - `lore` e `memoryFragments` ficam em `config.js`.
 - `style.css` cuida das animações e microinterações.
-- `app.js` cuida do céu, do livro, do amanhecer e da preferência de movimento.
+- `app.js` cuida do céu, do livro, das regras ilustradas, da cópia do IP e da
+  preferência de movimento.
 - **Pausar animações**, no rodapé, guarda a escolha entre as páginas.
 - A preferência de movimento reduzido do sistema é respeitada.
 - O conteúdo principal continua visível com JavaScript desativado.
 
 Os links relativos funcionam no domínio próprio e em `/astral-site/`. Os atalhos
-`#sobre`, `#regras` e `#jogar` na página inicial levam às páginas correspondentes;
-`#status` permanece na página inicial.
+`#sobre` e `#regras` na página inicial levam às páginas correspondentes;
+`#status` permanece na página inicial. O botão Jogar não troca de página.
 
 ## Publicação
 

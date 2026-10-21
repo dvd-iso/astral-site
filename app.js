@@ -15,7 +15,7 @@
 
   // Mantém funcionando os links da antiga página única, inclusive com /astral-site/.
   if (document.body.dataset.page === "inicio") {
-    const legacyPages = { "#sobre": "sobre.html", "#regras": "regras.html", "#jogar": "jogar.html" };
+    const legacyPages = { "#sobre": "sobre.html", "#regras": "regras.html" };
     const redirectLegacyLink = () => {
       const page = legacyPages[location.hash];
       if (!page) return false;
@@ -58,7 +58,7 @@
   document.querySelectorAll("[data-name]").forEach((el) => (el.textContent = cfg.serverName));
   document.querySelectorAll("[data-version]").forEach((el) => (el.textContent = cfg.serverVersion));
   document.title = `${document.body.dataset.pageTitle} — ${cfg.serverName}`;
-  if ($("ipText")) $("ipText").textContent = cfg.serverAddress;
+  document.querySelectorAll("[data-server-address]").forEach((el) => (el.textContent = cfg.serverAddress));
 
   // Botões/links para a comunidade no Fluxer
   if (cfg.fluxerInviteUrl) {
@@ -112,43 +112,105 @@
       if (!motionEnabled) fragmentCopy.getAnimations().forEach((animation) => animation.cancel());
     });
   }
-  const sceneToggle = document.querySelector("[data-scene-toggle]");
-  if (sceneToggle) {
-    sceneToggle.hidden = false;
-    sceneToggle.addEventListener("click", () => {
-      const isDay = sceneToggle.closest(".world-scene").classList.toggle("is-day");
-      sceneToggle.setAttribute("aria-pressed", String(isDay));
-      sceneToggle.textContent = isDay ? "Voltar à noite" : "Ver o amanhecer";
-      $("sceneDesc").textContent = `Ilustração em pixel art de duas pessoas ao redor de uma fogueira, uma casa iluminada, árvores, montanhas e um rio ${isDay ? "à luz do amanhecer" : "sob o céu estrelado"}.`;
-    });
-  }
-
   // ---------- Regras (somente na página de regras) ----------
   const rulesList = $("rulesList");
   if (rulesList) {
-    (cfg.rules || []).forEach((rule) => {
+    (cfg.rules || []).forEach((rule, index) => {
+      const details = cfg.ruleCards?.[index] || { title: `Regra ${index + 1}`, art: "equipe" };
       const li = document.createElement("li");
-      li.append(createPixelIcon("shield", "rule-icon"), document.createTextNode(rule));
+      li.className = "rule-card";
+      const illustration = document.createElement("div");
+      illustration.className = "rule-illustration";
+      const art = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      art.setAttribute("viewBox", "0 0 96 72");
+      art.setAttribute("class", "rule-art");
+      art.setAttribute("aria-hidden", "true");
+      art.setAttribute("focusable", "false");
+      const use = document.createElementNS("http://www.w3.org/2000/svg", "use");
+      use.setAttribute("href", `artes/regras-8bit.svg?v=13#${details.art}`);
+      art.append(use);
+      illustration.append(art);
+      const copy = document.createElement("div");
+      copy.className = "rule-copy";
+      const number = document.createElement("span");
+      number.className = "rule-number";
+      number.setAttribute("aria-hidden", "true");
+      number.textContent = String(index + 1).padStart(2, "0");
+      const title = document.createElement("h3");
+      title.textContent = details.title;
+      const text = document.createElement("p");
+      text.textContent = rule;
+      copy.append(number, title, text);
+      li.append(illustration, copy);
       rulesList.append(li);
     });
   }
 
   // ---------- Copiar IP ----------
-  $("copyIp")?.addEventListener("click", async () => {
-    try {
-      await navigator.clipboard.writeText(cfg.serverAddress);
-      $("copyHint").textContent = "copiado! ✓";
-    } catch {
-      $("copyHint").textContent = cfg.serverAddress;
+  const copyButtons = document.querySelectorAll("[data-copy-ip]");
+  if (copyButtons.length) {
+    const toast = document.createElement("div");
+    toast.className = "copy-toast";
+    toast.setAttribute("role", "status");
+    toast.setAttribute("aria-live", "polite");
+    toast.setAttribute("aria-atomic", "true");
+    document.body.append(toast);
+    const restoreTimers = new WeakMap();
+    let toastTimer;
+
+    function copyWithSelection() {
+      const field = document.createElement("textarea");
+      field.className = "clipboard-fallback";
+      field.value = cfg.serverAddress;
+      field.readOnly = true;
+      field.setAttribute("aria-hidden", "true");
+      const focused = document.activeElement;
+      document.body.append(field);
+      let copied = false;
+      try {
+        field.select();
+        copied = document.execCommand("copy");
+      } catch {}
+      field.remove();
+      focused?.focus({ preventScroll: true });
+      return copied;
     }
-    setTimeout(() => ($("copyHint").textContent = "clique para copiar"), 2000);
-  });
+
+    copyButtons.forEach((button) => {
+      button.title = `Copiar ${cfg.serverAddress}`;
+      button.setAttribute("aria-label", `Jogar no ${cfg.serverName}: copiar o endereço ${cfg.serverAddress}`);
+      button.addEventListener("click", async () => {
+        let copied;
+        try {
+          if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(cfg.serverAddress);
+            copied = true;
+          } else copied = copyWithSelection();
+        } catch { copied = copyWithSelection(); }
+        clearTimeout(restoreTimers.get(button));
+        button.dataset.copyState = copied ? "copied" : "error";
+        const feedback = button.querySelector("[data-copy-feedback]");
+        if (feedback) feedback.textContent = copied ? "IP copiado!" : "Copie o IP";
+        const hint = button.querySelector("[data-copy-hint]");
+        if (hint) hint.textContent = copied ? "IP copiado!" : cfg.serverAddress;
+        toast.textContent = copied ? `${cfg.serverAddress} copiado!` : `Copie este endereço: ${cfg.serverAddress}`;
+        toast.classList.add("is-visible");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.classList.remove("is-visible"), copied ? 2600 : 7000);
+        restoreTimers.set(button, setTimeout(() => {
+          delete button.dataset.copyState;
+          if (hint) hint.textContent = "clique para copiar";
+        }, 2200));
+      });
+    });
+  }
 
   // ---------- Status do servidor (api.mcsrvstat.us) ----------
   async function loadStatus() {
     const badge = $("statusBadge");
     try {
       const res = await fetch(`https://api.mcsrvstat.us/3/${encodeURIComponent(cfg.serverAddress)}`);
+      if (!res.ok) throw new Error("Status indisponível");
       const data = await res.json();
 
       if (!data.online) {
@@ -157,27 +219,14 @@
         $("playersOnline").textContent = "0";
         $("playersMax").textContent = "–";
         $("version").textContent = cfg.serverVersion;
-        $("playerList").innerHTML = "";
       } else {
         badge.className = "badge on";
         badge.querySelector("b").textContent = "online";
         $("playersOnline").textContent = data.players?.online ?? 0;
         $("playersMax").textContent = data.players?.max ?? "–";
         $("version").textContent = cfg.serverVersion || data.version || "–";
-
-        const list = $("playerList");
-        list.innerHTML = "";
-        (data.players?.list || []).forEach((p) => {
-          const li = document.createElement("li");
-          const img = document.createElement("img");
-          img.src = `https://mc-heads.net/avatar/${encodeURIComponent(p.name)}/24`;
-          img.alt = "";
-          img.loading = "lazy";
-          li.append(img, document.createTextNode(p.name));
-          list.append(li);
-        });
       }
-      $("updated").textContent = `Atualizado às ${new Date().toLocaleTimeString("pt-BR")} • atualiza a cada minuto`;
+      $("updated").textContent = `Atualizado às ${new Date().toLocaleTimeString("pt-BR")}`;
     } catch {
       badge.className = "badge off";
       badge.querySelector("b").textContent = "indisponível";

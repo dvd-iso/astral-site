@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; frame-src 'none'; connect-src 'self' https://api.mcsrvstat.us; img-src 'self' data: https://mc-heads.net; style-src 'self' 'unsafe-inline'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; frame-src 'none'; connect-src 'self' https://api.mcsrvstat.us; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'" />
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <meta name="theme-color" content="#050508" />
   <title>Sobre — Astral</title>
   <meta name="description" content="Conheça o Astral: sobrevivência com base vanilla, foco social, RPG e progressão narrativa. Um mundo de Sonhadores, escolhas e memórias construídas em comunidade." />
   <link rel="preload" href="fonts/Monocraft.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="style.css?v=12" />
+  <link rel="stylesheet" href="style.css?v=13" />
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
 </head>
 <body data-page="sobre" data-page-title="Sobre">
@@ -20,21 +20,20 @@
       <path class="star-core" d="M8 7h1v1h-1zM7 8h3v1h-3zM8 9h1v1h-1z" />
     </symbol>
   </svg>
-
   <canvas id="stars" aria-hidden="true"></canvas>
 
   <header class="nav">
-    <a href="index.html" class="logo" aria-label="Astral — Início">
-      <svg class="pixel-star logo-star" aria-hidden="true"><use href="#star" /></svg>
-      <span data-name>Astral</span>
-    </a>
+    <a href="index.html" class="logo" aria-label="Astral — Início"><svg class="pixel-star logo-star" aria-hidden="true"><use href="#star" /></svg><span data-name>Astral</span></a>
     <nav aria-label="Navegação principal">
-      <a href="index.html">Início</a>
-      <a href="sobre.html" aria-current="page">Sobre</a>
-      <a href="regras.html">Regras</a>
-      <a href="jogar.html" class="btn btn-small">Jogar</a>
+      <a href="index.html">Início</a><a href="sobre.html" aria-current="page">Sobre</a><a href="regras.html">Regras</a>
+      <button type="button" class="btn btn-small play-button" data-copy-ip aria-label="Jogar: copiar astralmc.online">
+        <span class="play-label" aria-hidden="true">Jogar</span>
+        <span class="play-address" data-server-address aria-hidden="true">astralmc.online</span>
+        <span class="play-feedback" data-copy-feedback aria-hidden="true">IP copiado!</span>
+      </button>
     </nav>
     <a href="#" class="btn btn-small btn-ghost nav-community" data-fluxer hidden target="_blank" rel="noopener">Fluxer ↗</a>
+    <noscript><p class="noscript-ip">IP do servidor: <strong>astralmc.online</strong></p></noscript>
   </header>
 
   <main id="conteudo" tabindex="-1">
@@ -44,50 +43,6 @@
       <p class="tagline">Sobrevivência com base vanilla, foco social e RPG. Um mundo que ganha sentido com as pessoas que passam por ele.</p>
       <ul class="identity-tags" aria-label="O que nos move"><li>Liberdade para criar</li><li>Vontade de colaborar</li><li>Histórias para viver</li></ul>
     </header>
-
-    <figure class="world-scene" data-reveal>
-      <div class="scene-toolbar"><span><i aria-hidden="true"></i> Um mundo de possibilidades</span><button type="button" class="scene-toggle" data-scene-toggle aria-pressed="false" hidden>Ver o amanhecer</button></div>
-      <svg class="landscape" viewBox="0 0 640 300" role="img" aria-labelledby="sceneTitle sceneDesc" xmlns="http://www.w3.org/2000/svg">
-        <title id="sceneTitle">Um lugar para construir memórias juntos</title>
-        <desc id="sceneDesc">Ilustração em pixel art de duas pessoas ao redor de uma fogueira, uma casa iluminada, árvores, montanhas e um rio sob o céu estrelado.</desc>
-        <defs>
-          <linearGradient id="sceneSky" x2="0" y2="1"><stop class="scene-sky-top" stop-color="#11152c"/><stop class="scene-sky-bottom" offset="1" stop-color="#53416b"/></linearGradient>
-          <linearGradient id="sceneRiver" x2="0" y2="1"><stop stop-color="#4b7196"/><stop offset="1" stop-color="#213e64"/></linearGradient>
-          <pattern id="sceneDirt" width="24" height="20" patternUnits="userSpaceOnUse"><rect width="24" height="20" fill="#59463c"/><path d="M0 4h8v4H0zM12 12h8v4h-8z" fill="#6d5442"/><path d="M8 0h4v4H8zM20 8h4v4h-4z" fill="#433b3b"/></pattern>
-          <symbol id="sceneTree" viewBox="0 0 48 84"><path d="M20 44h8v40h-8z" fill="#544338"/><path d="M24 48h4v36h-4z" fill="#3b3533"/><path d="M16 0h16v8h8v12h8v24h-8v12H8V44H0V20h8V8h8z" fill="#294d4a"/><path d="M16 0h16v8h8v12H28v8H8v-8H0v16h16v8h24V32h8v12h-8v12H8V44H0V20h8V8h8z" fill="#396357"/><path d="M12 12h12v8H12zM28 32h8v8h-8z" fill="#4f7962"/></symbol>
-        </defs>
-        <rect width="640" height="300" fill="url(#sceneSky)"/>
-        <g class="scene-stars" fill="#e4dcff"><path d="M26 30h2v2h-2zM84 64h2v2h-2zM142 22h2v2h-2zM206 50h2v2h-2zM260 20h2v2h-2zM326 66h2v2h-2zM390 28h2v2h-2zM460 70h2v2h-2zM574 28h2v2h-2zM608 82h2v2h-2z"/><path class="scene-twinkle" d="M108 36h2v6h-2zM106 38h6v2h-6zM352 16h2v6h-2zM350 18h6v2h-6zM560 74h2v6h-2zM558 76h6v2h-6z"/></g>
-        <g class="scene-moon"><path d="M506 26h20v4h4v20h-4v4h-20v-4h-4V30h4z" fill="#ece5b5"/><path d="M518 26h8v4h4v20h-4v4h-12v-8h8V34h-4z" fill="#c1bb9c"/><path d="M508 36h4v4h-4zM516 44h4v4h-4z" fill="#d4ceaa"/></g>
-        <g class="scene-sun"><path d="M504 24h24v4h4v24h-4v4h-24v-4h-4V28h4z" fill="#ffe29a"/><path d="M510 16h4v-8h4v8h4v4h-12zM510 60h12v4h-4v8h-4v-8h-4zM488 34h8v12h-8v-4h-8v-4h8zM536 34h8v4h8v4h-8v4h-8z" fill="#f3c57a"/></g>
-        <g class="scene-cloud scene-cloud-far" fill="#c7bbd6" opacity=".2"><path d="M52 66h24V54h36v8h28v16H52zM402 82h28V70h36v8h28v16h-92z"/></g>
-        <g class="scene-cloud scene-cloud-near" fill="#e9d9d3" opacity=".16"><path d="M202 92h28V80h32v8h28v16h-88zM550 104h24V92h36v8h30v16h-90z"/></g>
-        <path class="scene-mountain-far" d="M0 156h24v-16h24v-16h24v-20h24v16h24v20h24v16h24v-12h32v-20h24v-20h32V84h24v20h24v24h24v16h24v16h24v-20h32v-28h24V92h24v24h24v24h24v16h32v-20h24v-16h24v24h24v12h32v144H0z" fill="#353750"/>
-        <path class="scene-mountain-near" d="M0 180h32v-12h32v-20h40v16h32v16h32v12h40v-16h32v-24h32v-20h40v24h32v20h32v12h40v-16h32v-20h40v12h32v16h40v12h32v-16h32v-12h32v16h32v132H0z" fill="#2b444c"/>
-        <path d="M248 104h8V84h24v20h16v8h-24v-8h-8v8h-16zM408 112h8V92h24v24h8v8h-16v-12h-8v8h-16z" fill="#aaa3a8" opacity=".45"/>
-        <path d="M0 218h72v-12h72v8h48v-12h72v-12h120v8h72v12h72v-8h64v12h48v86H0z" fill="url(#sceneDirt)"/>
-        <path class="scene-grass" d="M0 208h72v-12h72v8h48v-12h72v-12h120v8h72v12h72v-8h64v12h48v14h-48v-12h-64v8h-72v-12h-72v-8H264v12h-72v12h-48v-8H72v12H0z" fill="#537a58"/>
-        <path d="M216 200h48v-8h56v12h-44v12h-36v16h-32v24h-32v20h-24v24H16v-16h40v-20h40v-20h40v-16h40v-16h40z" fill="url(#sceneRiver)"/>
-        <g class="scene-water" fill="#8eacb6" opacity=".45"><path d="M210 210h36v2h-36zM170 232h32v2h-32zM128 258h48v2h-48zM64 284h56v2H64zM144 274h24v2h-24z"/></g>
-        <use href="#sceneTree" x="22" y="122" width="48" height="84"/>
-        <use href="#sceneTree" x="90" y="142" width="38" height="66"/>
-        <use href="#sceneTree" x="562" y="122" width="48" height="84"/>
-        <use href="#sceneTree" x="520" y="148" width="34" height="60"/>
-        <g class="scene-house"><path d="M384 156h84v64h-84z" fill="#a17b52"/><path d="M384 168h84v4h-84zM384 184h84v4h-84zM384 200h84v4h-84zM384 216h84v4h-84z" fill="#745640"/><path d="M372 154h12v-10h12v-10h12v-10h36v10h12v10h12v10h12v12H372z" fill="#604652"/><path d="M384 144h12v-10h12v-10h36v10h12v10h-12v-8h-36v8h-12v10h-12z" fill="#9b6661"/><path d="M438 118h12v20h-12z" fill="#7d7578"/><path d="M414 188h20v32h-20z" fill="#4d3b36"/><path d="M418 192h12v16h-12z" fill="#725747"/><path d="M426 210h3v3h-3z" fill="#e5c179"/><path d="M392 178h16v20h-16zM442 178h16v20h-16z" fill="#493b40"/><path class="scene-window" d="M394 180h12v16h-12zM444 180h12v16h-12z" fill="#f4cd81"/><path d="M398 178h3v20h-3zM448 178h3v20h-3zM392 186h16v3h-16zM442 186h16v3h-16z" fill="#745640"/><path d="M406 220h36v4h-36v4h44v4h-52v-4h8z" fill="#b09a79"/></g>
-        <g class="scene-smoke" fill="#c8b8c2" opacity=".3"><path d="M442 110h6v-8h-6zM446 96h8v-6h-8zM442 84h6v-6h-6z"/></g>
-        <path d="M408 232h40v8h-40v8h-32v12h-32v12h-32v12h-24v16h-32v-20h24v-16h32v-12h32v-12h32v-12h32z" fill="#88775c"/>
-        <path d="M452 232h64v32h-64z" fill="#483f32"/><path d="M456 232v28h4v-28zM468 232v28h4v-28zM480 232v28h4v-28zM492 232v28h4v-28zM504 232v28h4v-28z" fill="#b19b59"/><path d="M452 240h64v4h-64zM452 252h64v4h-64z" fill="#7e8c4e"/>
-        <g class="scene-person"><path d="M264 202h12v12h-12z" fill="#c69878"/><path d="M264 202h12v4h-12zM272 206h4v4h-4z" fill="#4c3938"/><path d="M262 214h16v16h-16z" fill="#7186a4"/><path d="M264 230h5v12h-5zM272 230h5v12h-5z" fill="#34374f"/><path d="M258 216h4v14h-4z" fill="#c69878"/><path class="scene-wave" d="M278 214h4v14h-4z" fill="#c69878"/></g>
-        <g class="scene-person"><path d="M332 202h12v12h-12z" fill="#bd8e70"/><path d="M332 202h12v4h-12zM332 206h4v8h-4z" fill="#393536"/><path d="M330 214h16v16h-16z" fill="#b39164"/><path d="M332 230h5v12h-5zM340 230h5v12h-5z" fill="#4c4351"/><path d="M326 216h4v14h-4zM346 216h4v14h-4z" fill="#bd8e70"/></g>
-        <ellipse class="scene-fire-glow" cx="302" cy="236" rx="32" ry="12" fill="#e8b45c" opacity=".13"/>
-        <path d="M290 238h24v4h-24zM294 234h16v4h-16z" fill="#5b4038"/>
-        <g class="scene-fire"><path d="M294 234v-12h4v-8h4v8h8v12z" fill="#e48c50"/><path d="M298 234v-8h4v-4h4v12z" fill="#f6d17f"/></g>
-        <g class="scene-embers" fill="#f6d17f"><rect class="ember ember-one" x="296" y="212" width="2" height="2"/><rect class="ember ember-two" x="306" y="204" width="2" height="2"/><rect class="ember ember-three" x="300" y="194" width="2" height="2"/></g>
-        <path d="M40 246h4v12h-4zM84 222h4v12h-4zM548 248h4v12h-4zM584 234h4v12h-4z" fill="#536c4f"/><path d="M36 244h12v4H36zM544 246h12v4h-12z" fill="#bf9bba"/><path d="M80 220h12v4H80zM580 232h12v4h-12z" fill="#e4c276"/>
-        <path d="M0 286h24v14H0zM184 284h32v16h-32zM480 284h40v16h-40zM604 280h36v20h-36z" fill="#1e3836"/>
-      </svg>
-      <figcaption>Uma casa, uma fogueira, uma boa companhia.<br><span>Um pequeno retrato do que queremos construir juntos.</span></figcaption>
-    </figure>
 
     <section class="block manifesto" data-reveal aria-labelledby="visionTitle">
       <div class="manifesto-heading">
@@ -104,62 +59,46 @@
     </section>
 
     <section class="block" aria-labelledby="aboutTitle" data-reveal>
-      <header class="block-head">
-        <h2 id="aboutTitle">Tem espaço para o seu jeito de jogar</h2>
-      </header>
+      <header class="block-head"><h2 id="aboutTitle">Tem espaço para o seu jeito de jogar</h2></header>
       <div class="features">
-        <div class="feature f-green" data-reveal>
+        <article class="feature f-green" data-reveal>
           <svg class="f-icon" viewBox="0 0 12 12" aria-hidden="true"><path d="M1 3h10v8H1zM1 1h10v3H1zM3 4h2v2H3zM7 4h2v2H7zM2 8h2v1H2zM8 9h2v1H8z"/></svg>
-          <h3>Sobrevivência com base vanilla</h3>
-          <p>Sobreviver, explorar, plantar, minerar e construir continuam no centro da experiência. A lore dá novos significados e caminhos a essa base.</p>
-        </div>
-        <div class="feature f-purple" data-reveal>
+          <h3>Sobrevivência com base vanilla</h3><p>Sobreviver, explorar, plantar, minerar e construir continuam no centro da experiência. A lore dá novos significados e caminhos a essa base.</p>
+        </article>
+        <article class="feature f-purple" data-reveal>
           <svg class="f-icon" viewBox="0 0 12 12" aria-hidden="true"><path d="M4 2h4v1h1v1h1v4h-1v1h-1v1h-4v-1h-1v-1h-1v-4h1v-1h1zM2 6h8v1h-8zM0 7h2v1h-2zM10 5h2v1h-2zM4 3h1v1h-1z"/></svg>
-          <h3>RPG e imaginação</h3>
-          <p>Personagens ganham vida com a equipe. Encontros, mistérios e escolhas dos Sonhadores ajudam a construir a história que vivemos juntos.</p>
-        </div>
-        <div class="feature f-yellow" data-reveal>
+          <h3>RPG e imaginação</h3><p>Personagens ganham vida com a equipe. Encontros, mistérios e escolhas dos Sonhadores ajudam a construir a história que vivemos juntos.</p>
+        </article>
+        <article class="feature f-yellow" data-reveal>
           <svg class="f-icon" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1h3v3H2zM2 5h3v1h1v5H1V6h1zM8 2h2v2H8zM7 5h3v1h1v4H7z"/></svg>
-          <h3>Um projeto de todos</h3>
-          <p>Quem constrói, explora, inventa uma máquina ou recebe alguém novo tem algo a somar. A comunidade também é uma construção coletiva.</p>
-        </div>
+          <h3>Um projeto de todos</h3><p>Quem constrói, explora, inventa uma máquina ou recebe alguém novo tem algo a somar. A comunidade também é uma construção coletiva.</p>
+        </article>
       </div>
     </section>
 
     <section class="block" aria-labelledby="progressionTitle" data-reveal>
-      <header class="block-head">
-        <h2 id="progressionTitle">Um mundo que se abre com a história</h2>
-      </header>
+      <header class="block-head"><h2 id="progressionTitle">Um mundo que se abre com a história</h2></header>
       <p class="muted">A progressão acompanha os acontecimentos da lore. O Nether começa selado, e sua abertura depende de um grande ritual que os Sonhadores precisam realizar.</p>
       <p class="muted">Algumas mecânicas também refletem esse mundo: os Villagers não oferecem Remendo, e os golens de ferro não deixam ferro ao morrer. Projetos de redstone e farms têm espaço, levando em conta essas particularidades.</p>
     </section>
 
     <section class="lore-shelf" aria-labelledby="dreamersTitle" data-reveal>
       <div>
-        <p class="eyebrow">Um mundo que também sonha</p>
-        <h2 id="dreamersTitle">Por aqui, somos Sonhadores.</h2>
+        <p class="eyebrow">Um mundo que também sonha</p><h2 id="dreamersTitle">Por aqui, somos Sonhadores.</h2>
         <p class="muted">A lore do <span data-name>Astral</span> fala de memórias, de quem veio antes e de quem ainda vai moldar o mundo. É um convite para olhar os detalhes com curiosidade e imaginar o que pode vir depois.</p>
         <p class="muted">E, entre um mistério e outro, existe a nossa própria história: feita das escolhas, dos encontros e das coisas que criamos juntos.</p>
       </div>
       <div class="fragment-book">
         <span class="fragment-book-label">Fragmentos do mundo</span>
-        <div class="fragment-copy" data-fragment-copy aria-live="polite" aria-atomic="true">
-          <blockquote><p data-fragment-text>“Alguém adoraria ver o que você vai construir.”</p><cite data-fragment-source>— um sonho</cite></blockquote>
-        </div>
+        <div class="fragment-copy" data-fragment-copy aria-live="polite" aria-atomic="true"><blockquote><p data-fragment-text>“Alguém adoraria ver o que você vai construir.”</p><cite data-fragment-source>— um sonho</cite></blockquote></div>
         <div class="fragment-controls">
-          <span class="fragment-progress" data-fragment-progress role="img" aria-label="Fragmento 1 de 4">
-            <svg class="pixel-icon is-current" aria-hidden="true" focusable="false"><use href="icons.svg#spark" /></svg>
-            <svg class="pixel-icon" aria-hidden="true" focusable="false"><use href="icons.svg#spark" /></svg>
-            <svg class="pixel-icon" aria-hidden="true" focusable="false"><use href="icons.svg#spark" /></svg>
-            <svg class="pixel-icon" aria-hidden="true" focusable="false"><use href="icons.svg#spark" /></svg>
-          </span>
+          <span class="fragment-progress" data-fragment-progress role="img" aria-label="Fragmento 1 de 4"><svg class="pixel-icon is-current" aria-hidden="true" focusable="false"><use href="icons.svg#spark" /></svg><svg class="pixel-icon" aria-hidden="true" focusable="false"><use href="icons.svg#spark" /></svg><svg class="pixel-icon" aria-hidden="true" focusable="false"><use href="icons.svg#spark" /></svg><svg class="pixel-icon" aria-hidden="true" focusable="false"><use href="icons.svg#spark" /></svg></span>
           <button type="button" class="text-button" data-next-fragment hidden>Outro fragmento <span aria-hidden="true">→</span></button>
         </div>
       </div>
     </section>
 
     <blockquote class="lore" data-lore="1" data-reveal></blockquote>
-
     <section class="memories" aria-labelledby="memoriesTitle" data-reveal>
       <header class="section-heading"><p class="eyebrow">É por isso que a gente joga</p><h2 id="memoriesTitle">Os blocos ficam no mapa.<br>Os momentos ficam na gente.</h2><p class="muted">É esse tipo de lembrança que queremos criar por aqui.</p></header>
       <div class="memory-grid">
@@ -168,32 +107,13 @@
         <article class="memory-card f-yellow" data-reveal><span class="memory-label"><svg class="pixel-icon" aria-hidden="true" focusable="false"><use href="icons.svg#campfire" /></svg>A companhia</span><h3>Só mais um pouquinho.</h3><p>A conversa que se estende, o projeto que ganha outra ideia e aquela sessão que vira uma lembrança boa.</p><span class="memory-dots" aria-hidden="true"><i></i><i></i><i></i></span></article>
       </div>
     </section>
-
-    <section class="block page-cta" data-reveal>
-      <svg class="pixel-star cta-star" aria-hidden="true"><use href="#star" /></svg>
-      <p class="eyebrow">Ainda tem muita coisa para viver</p>
-      <h2>O próximo bloco pode ser seu.</h2>
-      <p class="muted">Traga o seu jeito de jogar, suas ideias e a vontade de fazer parte. Vamos construir mais que uma história juntos.</p>
-      <div class="hero-actions">
-        <a href="jogar.html" class="btn">Quero fazer parte <span aria-hidden="true">→</span></a>
-        <a href="#" class="btn btn-ghost" data-fluxer hidden target="_blank" rel="noopener">Conhecer a comunidade</a>
-      </div>
-      <p class="cta-note">Nosso primeiro combinado? <a href="regras.html">Cuidar desse mundo e de quem joga nele.</a></p>
-    </section>
   </main>
 
   <footer>
-    <svg class="pixel-star foot-star" aria-hidden="true"><use href="#star" /></svg>
-    <p class="footer-promise">Feito de blocos. Lembrado por pessoas.</p>
-    <nav class="footer-nav" aria-label="Navegação do rodapé">
-      <a href="index.html">Início</a><a href="sobre.html">Sobre</a><a href="regras.html">Regras</a><a href="jogar.html">Jogar</a>
-    </nav>
-    <p class="lore-foot" data-lore="3"></p>
-    <p><span data-name>Astral</span> · <a href="#" data-fluxer hidden target="_blank" rel="noopener">Fluxer</a> · Não afiliado à Mojang ou à Microsoft.</p>
+    <div class="footer-meta"><p><span data-name>Astral</span> · Feito de blocos. Lembrado por pessoas.</p><p class="footer-legal">Não afiliado à Mojang ou à Microsoft.</p></div>
     <button class="motion-toggle" type="button" data-motion-toggle aria-pressed="false" hidden><span class="motion-icon" aria-hidden="true"></span><span data-motion-label>Pausar animações</span></button>
   </footer>
-
-  <script src="config.js?v=12"></script>
-  <script src="app.js?v=12"></script>
+  <script src="config.js?v=13"></script>
+  <script src="app.js?v=13"></script>
 </body>
 </html>

@@ -3,16 +3,16 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; frame-src 'none'; connect-src 'self' https://api.mcsrvstat.us; img-src 'self' data: https://mc-heads.net; style-src 'self' 'unsafe-inline'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; frame-src 'none'; connect-src 'self' https://api.mcsrvstat.us; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'" />
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <meta name="theme-color" content="#050508" />
-  <title>Jogar — Astral</title>
+  <title>Como entrar — Astral</title>
   <meta name="description" content="Entre no Astral: endereço, versão do Minecraft Java e instruções de autenticação para contas originais e sem premium." />
   <link rel="preload" href="fonts/Monocraft.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="style.css?v=12" />
+  <link rel="stylesheet" href="style.css?v=13" />
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
 </head>
-<body data-page="jogar" data-page-title="Jogar">
+<body data-page="acesso" data-page-title="Como entrar">
   <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
   <svg class="sprite" aria-hidden="true">
     <symbol id="star" viewBox="0 0 17 17">
@@ -25,9 +25,15 @@
   <header class="nav">
     <a href="index.html" class="logo" aria-label="Astral — Início"><svg class="pixel-star logo-star" aria-hidden="true"><use href="#star" /></svg><span data-name>Astral</span></a>
     <nav aria-label="Navegação principal">
-      <a href="index.html">Início</a><a href="sobre.html">Sobre</a><a href="regras.html">Regras</a><a href="jogar.html" class="btn btn-small" aria-current="page">Jogar</a>
+      <a href="index.html">Início</a><a href="sobre.html">Sobre</a><a href="regras.html">Regras</a>
+      <button type="button" class="btn btn-small play-button" data-copy-ip aria-label="Jogar: copiar astralmc.online">
+        <span class="play-label" aria-hidden="true">Jogar</span>
+        <span class="play-address" data-server-address aria-hidden="true">astralmc.online</span>
+        <span class="play-feedback" data-copy-feedback aria-hidden="true">IP copiado!</span>
+      </button>
     </nav>
     <a href="#" class="btn btn-small btn-ghost nav-community" data-fluxer hidden target="_blank" rel="noopener">Fluxer ↗</a>
+    <noscript><p class="noscript-ip">IP do servidor: <strong>astralmc.online</strong></p></noscript>
   </header>
 
   <main id="conteudo" tabindex="-1">
@@ -47,7 +53,7 @@
       <p class="eyebrow" data-version>Java 26.3</p>
       <h2 id="connectTitle">Seu caminho começa aqui.</h2>
       <p class="muted">No Minecraft Java, abra <strong>Multijogador → Adicionar servidor</strong>, dê o nome Astral e use este endereço:</p>
-      <button class="ip" id="copyIp" title="Clique para copiar o endereço do servidor"><span id="ipText">astralmc.online</span><small id="copyHint" aria-live="polite">clique para copiar</small></button>
+      <button type="button" class="ip" id="copyIp" data-copy-ip title="Clique para copiar o endereço do servidor"><span id="ipText" data-server-address>astralmc.online</span><small data-copy-hint>clique para copiar</small></button>
     </section>
 
     <section class="block" aria-labelledby="loginTitle" data-reveal>
@@ -71,14 +77,10 @@
   </main>
 
   <footer>
-    <svg class="pixel-star foot-star" aria-hidden="true"><use href="#star" /></svg>
-    <p class="footer-promise">Feito de blocos. Lembrado por pessoas.</p>
-    <nav class="footer-nav" aria-label="Navegação do rodapé"><a href="index.html">Início</a><a href="sobre.html">Sobre</a><a href="regras.html">Regras</a><a href="jogar.html">Jogar</a></nav>
-    <p class="lore-foot" data-lore="3"></p>
-    <p><span data-name>Astral</span> · <a href="#" data-fluxer hidden target="_blank" rel="noopener">Fluxer</a> · Não afiliado à Mojang ou à Microsoft.</p>
+    <div class="footer-meta"><p><span data-name>Astral</span> · Feito de blocos. Lembrado por pessoas.</p><p class="footer-legal">Não afiliado à Mojang ou à Microsoft.</p></div>
     <button class="motion-toggle" type="button" data-motion-toggle aria-pressed="false" hidden><span class="motion-icon" aria-hidden="true"></span><span data-motion-label>Pausar animações</span></button>
   </footer>
-  <script src="config.js?v=12"></script>
-  <script src="app.js?v=12"></script>
+  <script src="config.js?v=13"></script>
+  <script src="app.js?v=13"></script>
 </body>
 </html>

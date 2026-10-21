@@ -14,7 +14,7 @@ window.ASTRAL_CONFIG = {
   // Link de convite da comunidade no Fluxer (opcional, deixe "" para esconder o botão)
   fluxerInviteUrl: "https://fluxer.gg/MhWgkZtU",
 
-  // Fragmentos da lore: Início, Sobre, Jogar e rodapé de todas as páginas.
+  // Fragmentos da lore usados nas páginas e no livro interativo.
   // "fonte" é opcional.
   lore: [
     { texto: "Um novo Sonhador desperta. O mundo se lembra de você agora.", fonte: "a Invocação" },
@@ -45,4 +45,16 @@ window.ASTRAL_CONFIG = {
     "A palavra final é da staff. Algum problema? Fale com a gente no Fluxer.",
   ],
 
+  // Títulos e cenas 8-bit, na mesma ordem das regras acima.
+  ruleCards: [
+    { title: "Respeito vem primeiro", art: "respeito" },
+    { title: "Cuide do que é dos outros", art: "construcoes" },
+    { title: "Jogue limpo", art: "jogo-justo" },
+    { title: "Encontrou um bug? Avise", art: "bugs" },
+    { title: "Dê espaço para as bases", art: "espaco" },
+    { title: "PvP só combinado", art: "pvp" },
+    { title: "Interprete com respeito", art: "rpg" },
+    { title: "Conversa sem spam", art: "spam" },
+    { title: "Conte com a equipe", art: "equipe" },
+  ],
 };
