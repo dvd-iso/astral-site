@@ -121,6 +121,28 @@
     });
   }
 
+  // ---------- Filme: carrega o player do YouTube somente ao dar play ----------
+  document.querySelectorAll("[data-video-player]").forEach((player) => {
+    const cover = player.querySelector(".video-cover");
+    if (!cover) return;
+    const playButton = document.createElement("button");
+    playButton.type = "button";
+    playButton.className = cover.className;
+    playButton.setAttribute("aria-label", `Reproduzir ${player.dataset.videoTitle}`);
+    playButton.append(...cover.childNodes);
+    cover.replaceWith(playButton);
+    playButton.addEventListener("click", () => {
+      const iframe = document.createElement("iframe");
+      iframe.src = `https://www.youtube-nocookie.com/embed/${player.dataset.videoId}?autoplay=1&rel=0&playsinline=1`;
+      iframe.title = player.dataset.videoTitle;
+      iframe.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen; web-share";
+      iframe.allowFullscreen = true;
+      iframe.referrerPolicy = "strict-origin-when-cross-origin";
+      player.replaceChildren(iframe);
+      iframe.focus({ preventScroll: true });
+    }, { once: true });
+  });
+
   // ---------- Fragmentos da lore ----------
   document.querySelectorAll("[data-lore]").forEach((el) => {
     const item = (cfg.lore || [])[Number(el.dataset.lore)];

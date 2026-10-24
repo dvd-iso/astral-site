@@ -12,7 +12,7 @@ Site estático em HTML/CSS/JavaScript, publicado no **GitHub Pages**.
 
 | Página | Arquivo | Conteúdo |
 |---|---|---|
-| Início | `index.html` | apresentação curta, status e versão |
+| Início | `index.html` | apresentação curta, vídeo, status e versão |
 | Sobre | `sobre.html` | proposta, RPG, progressão narrativa e comunidade |
 | Regras | `regras.html` | combinados ilustrados com cenas 8-bit |
 | Ajuda de acesso | `jogar.html` | instruções para links diretos e guias da comunidade |
@@ -47,6 +47,19 @@ A página Jogar explica o acesso para contas originais e para jogadores sem cont
 premium. O cadastro e a autenticação são feitos pela **interface do nLogin dentro
 do Minecraft**, seguindo as orientações exibidas na tela. As contas originais
 reconhecidas têm acesso automático. O plugin é configurado no servidor Minecraft.
+
+## Vídeo da página inicial
+
+O filme **Astral - apenas começando** aparece entre a apresentação e o status,
+com capa do YouTube, moldura nas cores do site e botão de play em pixel art.
+O player é responsivo em 16:9 e só carrega o YouTube ao clicar na capa, usando
+`youtube-nocookie.com`. O link **Ver no YouTube** fica sempre disponível; sem
+JavaScript, a própria capa também abre o vídeo no YouTube.
+
+Para trocar o vídeo, atualize o ID em `data-video-id`, o título em
+`data-video-title`, a imagem da capa e os dois links em `index.html`.
+A política de conteúdo dessa página permite o iframe de `youtube-nocookie.com`
+e a capa de `i.ytimg.com`.
 
 ## Modpack e instalação
 

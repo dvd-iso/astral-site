@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; frame-src 'none'; connect-src 'self' https://api.mcsrvstat.us; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; frame-src https://www.youtube-nocookie.com; connect-src 'self' https://api.mcsrvstat.us; img-src 'self' data: https://i.ytimg.com; style-src 'self' 'unsafe-inline'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'" />
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <meta name="theme-color" content="#050508" />
   <title>Início — Astral</title>
   <meta name="description" content="Astral: sobrevivência com base vanilla, foco social e RPG. Explore um mundo com lore própria e construa histórias e memórias em comunidade." />
   <link rel="preload" href="fonts/Monocraft.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="style.css?v=16" />
+  <link rel="stylesheet" href="style.css?v=17" />
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
 </head>
 <body data-page="inicio" data-page-title="Início">
@@ -56,6 +56,24 @@
       <p class="access-note">Contas originais e sem premium.</p>
     </section>
 
+    <section class="home-video" aria-labelledby="homeVideoTitle" data-reveal>
+      <header class="home-video-heading">
+        <div>
+          <p class="eyebrow">Nosso mundo, em vídeo</p>
+          <h2 id="homeVideoTitle">Apenas começando.</h2>
+        </div>
+        <a class="video-youtube-link" href="https://www.youtube.com/watch?v=xo05yBOUymo" target="_blank" rel="noopener">Ver no YouTube <span aria-hidden="true">↗</span></a>
+      </header>
+      <div class="video-player" data-video-player data-video-id="xo05yBOUymo" data-video-title="Astral - apenas começando">
+        <a class="video-cover" href="https://www.youtube.com/watch?v=xo05yBOUymo" target="_blank" rel="noopener" aria-label="Assistir a Astral - apenas começando no YouTube">
+          <img class="video-poster" src="https://i.ytimg.com/vi/xo05yBOUymo/maxresdefault.jpg" width="1280" height="720" alt="" loading="lazy" decoding="async" />
+          <span class="video-play" aria-hidden="true"><svg viewBox="0 0 16 16" focusable="false"><path d="M4 2h2v1h2v1h2v1h2v2h2v2h-2v2h-2v1H8v1H6v1H4z" /></svg></span>
+          <span class="video-cover-label">Assistir ao vídeo</span>
+        </a>
+      </div>
+      <p class="home-video-note"><svg class="pixel-icon" aria-hidden="true" focusable="false"><use href="icons.svg#spark" /></svg>Cada história começa com um primeiro bloco.</p>
+    </section>
+
     <section id="status" class="server-card" aria-labelledby="statusTitle">
       <header class="server-status-heading">
         <h2 id="statusTitle"><svg class="pixel-icon" aria-hidden="true" focusable="false"><use href="icons.svg#signal" /></svg>Servidor</h2>
@@ -75,6 +93,6 @@
   </footer>
 
   <script src="config.js?v=15"></script>
-  <script src="app.js?v=16"></script>
+  <script src="app.js?v=17"></script>
 </body>
 </html>
