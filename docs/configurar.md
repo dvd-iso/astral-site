@@ -63,7 +63,8 @@ e a capa de `i.ytimg.com`.
 
 ## Modpack e instalação
 
-- `downloads/Astral.mrpack` é a cópia de distribuição do pacote de cliente.
+- `downloads/Astral.mrpack` é a cópia de distribuição do Astral 2.0, baixada
+  como `Astral 2.0.mrpack`. O link usa `?v=2.0` para renovar o cache.
   Mantém mods, configurações e recursos do pack, sem caches de execução,
   históricos, dados do jogador nem lista pessoal de servidores.
 - `modpack` em `config.js` concentra `downloadUrl`, `fileName`, `version`,

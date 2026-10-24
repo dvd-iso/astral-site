@@ -14,8 +14,8 @@ window.ASTRAL_CONFIG = {
   // Pacote compartilhado pelos três launchers. Use um link direto no próprio site.
   // Ao trocar o arquivo, atualize também as versões conforme modrinth.index.json.
   modpack: {
-    downloadUrl: "downloads/Astral.mrpack",
-    fileName: "Astral.mrpack",
+    downloadUrl: "downloads/Astral.mrpack?v=2.0",
+    fileName: "Astral 2.0.mrpack",
     version: "1.0.0",
     minecraftVersion: "26.3",
     loader: "Fabric",
