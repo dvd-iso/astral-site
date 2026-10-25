@@ -300,11 +300,6 @@
           <li>Abra o launcher, selecione <strong>Astral</strong> e jogue.</li>
         </ol>
       </div>
-      <ul class="installer-launchers" aria-label="Launchers compatíveis">
-        <li class="launcher-official"><img class="launcher-logo" src="marca/launchers/minecraft.svg" width="28" height="28" alt="" aria-hidden="true" />Minecraft Launcher</li>
-        <li class="launcher-sklauncher"><img class="launcher-logo" src="marca/launchers/sklauncher.svg" width="28" height="28" alt="" aria-hidden="true" />SKlauncher 4</li>
-        <li class="launcher-prism"><img class="launcher-logo" src="marca/launchers/prism.svg" width="28" height="28" alt="" aria-hidden="true" />Prism Launcher</li>
-      </ul>
       <a class="installer-more" href="instalar.html">Outros sistemas e passo a passo <span aria-hidden="true">→</span></a>
     `;
     dialog.querySelector("[data-pack-name]").textContent = cfg.serverName;

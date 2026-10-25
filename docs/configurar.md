@@ -20,7 +20,7 @@ Site estático em HTML/CSS/JavaScript, publicado no **GitHub Pages**.
 
 Todas usam `style.css`, `config.js` e `app.js`. A barra superior reúne Início,
 Sobre e Regras. **Jogar abre uma janela para baixar o Astral Installer**, com o
-botão principal já apontando para o sistema detectado, os launchers compatíveis
+botão principal já apontando para o sistema detectado
 e o link para os outros sistemas. Não há opção de seguir sem o modpack na janela
 nem na página de instalação. Ao clicar no download, a janela mostra os próximos passos.
 A janela fecha pelo botão de fechar, Escape ou clique fora, e devolve o foco ao

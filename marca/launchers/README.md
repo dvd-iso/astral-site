@@ -14,6 +14,3 @@ As marcas pertencem aos respectivos titulares.
 
 Os SVGs são servidos pelo próprio site. Use `object-fit: contain` e renderização
 normal para preservar proporções e curvas, inclusive nas versões menores.
-
-- **Minecraft Launcher** — `minecraft.svg` é uma ilustração de bloco do Astral,
-  igual à do Astral Installer, e não o logotipo oficial da Mojang.
