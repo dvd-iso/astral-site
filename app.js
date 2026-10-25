@@ -113,6 +113,60 @@
     });
   }
 
+  // ---------- Astral Installer: download para o sistema do visitante ----------
+  const installerPlatforms = {
+    "win-x64": "Windows",
+    "mac-arm64": "macOS · Apple Silicon",
+    "mac-x64": "macOS · Intel",
+    "linux-x86_64": "Linux · x64",
+    "linux-arm64": "Linux · ARM64",
+  };
+  function installerUrl(platform) {
+    const extension = platform.startsWith("win-") ? "exe" : platform.startsWith("mac-") ? "dmg" : "AppImage";
+    return `${cfg.installer.downloadBaseUrl}Astral-Installer-${cfg.installer.version}-${platform}.${extension}`;
+  }
+  // Palpite inicial pelo user agent; Safari e Firefox no Mac não informam a arquitetura, então Apple Silicon é o padrão.
+  let installerPlatform = (() => {
+    const agent = navigator.userAgent;
+    const platform = `${navigator.userAgentData?.platform || ""} ${navigator.platform || ""}`;
+    if (navigator.userAgentData?.mobile || /Android|iPhone|iPad|iPod/i.test(agent) || (/Mac/i.test(platform) && navigator.maxTouchPoints > 1)) return null;
+    if (/Win/i.test(platform) || /Windows/i.test(agent)) return "win-x64";
+    if (/Mac/i.test(platform) || /Mac OS X/i.test(agent)) return "mac-arm64";
+    if (/Linux|X11|CrOS/i.test(platform + agent)) return /aarch64|arm64|armv8/i.test(platform + agent) ? "linux-arm64" : "linux-x86_64";
+    return null;
+  })();
+  function applyInstallerPlatform() {
+    if (!cfg.installer) return;
+    document.querySelectorAll("[data-installer-download]").forEach((link) => {
+      link.href = installerUrl(link.dataset.installerDownload);
+      link.classList.toggle("is-detected", link.dataset.installerDownload === installerPlatform);
+    });
+    document.querySelectorAll("[data-installer-primary]").forEach((link) => {
+      link.href = installerPlatform ? installerUrl(installerPlatform) : "instalar.html#sistemas";
+      link.querySelector("[data-installer-primary-label]").textContent = installerPlatform ? `Baixar para ${installerPlatforms[installerPlatform]}` : "Escolher meu sistema";
+    });
+    document.querySelectorAll("[data-installer-detected]").forEach((element) => {
+      element.textContent = installerPlatform
+        ? `Astral Installer ${cfg.installer.version} · detectamos ${installerPlatforms[installerPlatform]}. Não é o seu? Veja os outros sistemas.`
+        : "O Astral é jogado no computador. Abra esta página no PC onde você joga Minecraft Java, ou escolha o sistema.";
+    });
+    document.querySelectorAll("[data-installer-releases]").forEach((link) => (link.href = cfg.installer.releasesUrl));
+  }
+  applyInstallerPlatform();
+  if (installerPlatform && installerPlatform !== "win-x64" && navigator.userAgentData?.getHighEntropyValues) {
+    navigator.userAgentData.getHighEntropyValues(["architecture"]).then(({ architecture }) => {
+      const arm = architecture === "arm";
+      installerPlatform = installerPlatform.startsWith("mac-") ? (arm ? "mac-arm64" : "mac-x64") : (arm ? "linux-arm64" : "linux-x86_64");
+      applyInstallerPlatform();
+    }).catch(() => {});
+  }
+  // GitHub entrega o arquivo como anexo: a página continua aberta e mostra os próximos passos.
+  document.addEventListener("click", (event) => {
+    const link = event.target.closest("[data-installer-primary], [data-installer-download]");
+    if (!link || !link.href.includes("/releases/download/")) return;
+    document.querySelectorAll("[data-installer-next]").forEach((element) => (element.hidden = false));
+  });
+
   // Botões/links para a comunidade no Fluxer
   if (cfg.fluxerInviteUrl) {
     document.querySelectorAll("[data-fluxer]").forEach((a) => {
@@ -221,7 +275,7 @@
     });
   }
 
-  // ---------- Jogar: escolher o launcher ou seguir sem o modpack ----------
+  // ---------- Jogar: baixar o Astral Installer para o sistema do visitante ----------
   const playLinks = document.querySelectorAll("[data-play]");
   if (playLinks.length && typeof HTMLDialogElement !== "undefined" && "showModal" in HTMLDialogElement.prototype) {
     const dialog = document.createElement("dialog");
@@ -230,29 +284,32 @@
     dialog.setAttribute("aria-labelledby", "playDialogTitle");
     dialog.setAttribute("aria-describedby", "playDialogDescription");
     dialog.innerHTML = `
-      <button type="button" class="dialog-close" aria-label="Fechar escolha de launcher">×</button>
+      <button type="button" class="dialog-close" aria-label="Fechar">×</button>
       <p class="eyebrow"><svg class="pixel-icon" aria-hidden="true" focusable="false"><use href="icons.svg#spark" /></svg>Seu próximo capítulo</p>
       <h2 id="playDialogTitle" tabindex="-1" autofocus>Você gostaria de ter<br><span class="text-accent">a experiência completa?</span></h2>
-      <p id="playDialogDescription" class="muted">Instale o modpack do <span data-pack-name></span> com tudo preparado para você. Escolha seu launcher para baixar o pacote e abrir o passo a passo.</p>
-      <div class="launcher-options" role="group" aria-label="Escolha seu launcher">
-        <a class="launcher-option launcher-prism" href="instalar.html?launcher=prism&amp;download=1">
-          <img class="launcher-logo launcher-icon" src="marca/launchers/prism.svg" width="48" height="48" alt="" aria-hidden="true" />
-          <span class="launcher-name">Prism Launcher</span><span class="launcher-action">Instalar no Prism <span aria-hidden="true">→</span></span>
-        </a>
-        <a class="launcher-option launcher-sklauncher" href="instalar.html?launcher=sklauncher&amp;download=1">
-          <img class="launcher-logo launcher-icon" src="marca/launchers/sklauncher.svg" width="48" height="48" alt="" aria-hidden="true" />
-          <span class="launcher-name">SKlauncher</span><span class="launcher-action">Instalar no SKlauncher <span aria-hidden="true">→</span></span>
-        </a>
-        <a class="launcher-option launcher-modrinth" href="instalar.html?launcher=modrinth&amp;download=1">
-          <img class="launcher-logo launcher-icon" src="marca/launchers/modrinth.svg" width="48" height="48" alt="" aria-hidden="true" />
-          <span class="launcher-name">Modrinth App</span><span class="launcher-action">Instalar no Modrinth <span aria-hidden="true">→</span></span>
-        </a>
+      <p id="playDialogDescription" class="muted">Baixe o Astral Installer. Ele instala e atualiza o modpack do <span data-pack-name></span> no seu launcher, com os mods e as configurações prontos para você.</p>
+      <div class="installer-offer">
+        <a class="btn installer-primary" href="instalar.html#sistemas" data-installer-primary><span data-installer-primary-label>Baixar Astral Installer</span> <span aria-hidden="true">↓</span></a>
+        <p class="tiny muted" data-installer-detected></p>
       </div>
-      <p class="launcher-help muted">Ainda não tem um launcher? O guia também mostra onde baixar.</p>
-      <a class="skip-modpack" href="jogar.html#conectar">Continuar sem baixar o modpack <span aria-hidden="true">→</span></a>
+      <div class="installer-next" data-installer-next hidden>
+        <p class="eyebrow">Download iniciado</p>
+        <ol>
+          <li>Abra o <strong>Astral Installer</strong> que você baixou.</li>
+          <li>Clique no cartão do seu launcher e depois em <strong>Instalar Astral</strong>.</li>
+          <li>Abra o launcher, selecione <strong>Astral</strong> e jogue.</li>
+        </ol>
+      </div>
+      <ul class="installer-launchers" aria-label="Launchers compatíveis">
+        <li class="launcher-official"><img class="launcher-logo" src="marca/launchers/minecraft.svg" width="28" height="28" alt="" aria-hidden="true" />Minecraft Launcher</li>
+        <li class="launcher-sklauncher"><img class="launcher-logo" src="marca/launchers/sklauncher.svg" width="28" height="28" alt="" aria-hidden="true" />SKlauncher 4</li>
+        <li class="launcher-prism"><img class="launcher-logo" src="marca/launchers/prism.svg" width="28" height="28" alt="" aria-hidden="true" />Prism Launcher</li>
+      </ul>
+      <a class="installer-more" href="instalar.html">Outros sistemas e passo a passo <span aria-hidden="true">→</span></a>
     `;
     dialog.querySelector("[data-pack-name]").textContent = cfg.serverName;
     document.body.append(dialog);
+    applyInstallerPlatform();
     let playTrigger;
     playLinks.forEach((link) => {
       link.setAttribute("aria-haspopup", "dialog");
@@ -268,11 +325,6 @@
       });
     });
     dialog.querySelector(".dialog-close").addEventListener("click", () => dialog.close());
-    dialog.querySelector(".skip-modpack").addEventListener("click", (event) => {
-      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-      playTrigger = null;
-      dialog.close();
-    });
     dialog.addEventListener("keydown", (event) => {
       if (event.key !== "Tab") return;
       const controls = [...dialog.querySelectorAll("a[href], button:not([disabled])")];

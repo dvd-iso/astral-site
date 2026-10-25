@@ -7,9 +7,9 @@
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <meta name="theme-color" content="#050508" />
   <title>Instalar o modpack — Astral</title>
-  <meta name="description" content="Baixe o modpack do Astral e veja como instalar no Prism Launcher, SKlauncher ou Modrinth App em Windows, Linux e macOS." />
+  <meta name="description" content="Baixe o Astral Installer para Windows, macOS ou Linux e instale o modpack do Astral no Minecraft Launcher, SKlauncher ou Prism." />
   <link rel="preload" href="fonts/Monocraft.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="style.css?v=16" />
+  <link rel="stylesheet" href="style.css?v=19" />
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
 </head>
 <body data-page="instalar" data-page-title="Instalar o modpack">
@@ -40,54 +40,47 @@
   <main id="conteudo" tabindex="-1">
     <header class="page-header">
       <p class="eyebrow"><svg class="pixel-icon" aria-hidden="true" focusable="false"><use href="icons.svg#spark" /></svg>A experiência completa</p>
-      <h1>Instale o <span data-name>Astral</span><br><span class="text-accent" data-launcher-name>no seu launcher.</span></h1>
-      <p class="tagline">O mesmo modpack, com um caminho para cada launcher. Escolha o seu e siga os passos abaixo.</p>
+      <h1>Instale o <span data-name>Astral</span><br><span class="text-accent">em poucos cliques.</span></h1>
+      <p class="tagline">O Astral Installer instala e atualiza o modpack no Minecraft Launcher, no SKlauncher 4 ou no Prism Launcher. Baixe para o seu sistema e escolha seu launcher no aplicativo.</p>
       <ul class="identity-tags" aria-label="Versões do modpack">
         <li>Minecraft <span data-modpack-minecraft>26.3</span></li><li data-modpack-loader>Fabric 0.19.5</li><li>Pack <span data-modpack-version>1.0.0</span></li>
       </ul>
-      <p class="access-note">Windows · Linux · macOS</p>
     </header>
 
-    <nav class="launcher-tabs" aria-label="Guias de instalação">
-      <a class="launcher-prism" href="instalar.html?launcher=prism" data-launcher-tab="prism"><img class="launcher-logo" src="marca/launchers/prism.svg" width="24" height="24" alt="" aria-hidden="true" />Prism Launcher</a>
-      <a class="launcher-sklauncher" href="instalar.html?launcher=sklauncher" data-launcher-tab="sklauncher"><img class="launcher-logo" src="marca/launchers/sklauncher.svg" width="24" height="24" alt="" aria-hidden="true" />SKlauncher</a>
-      <a class="launcher-modrinth" href="instalar.html?launcher=modrinth" data-launcher-tab="modrinth"><img class="launcher-logo" src="marca/launchers/modrinth.svg" width="24" height="24" alt="" aria-hidden="true" />Modrinth App</a>
-    </nav>
-
-    <section class="block download-card" aria-labelledby="downloadTitle">
-      <div>
-        <p class="eyebrow">Seu modpack</p>
-        <h2 id="downloadTitle" data-modpack-file>Astral 2.0.mrpack</h2>
-        <p id="downloadStatus" class="muted" role="status" aria-live="polite">Baixe o pacote e importe no launcher escolhido.</p>
+    <section class="block installer-card" aria-labelledby="installerTitle">
+      <p class="eyebrow">Astral Installer</p>
+      <h2 id="installerTitle">Seu launcher. O Astral pronto para jogar.</h2>
+      <div class="installer-offer">
+        <a class="btn installer-primary" href="#sistemas" data-installer-primary><span data-installer-primary-label>Baixar Astral Installer</span> <span aria-hidden="true">↓</span></a>
+        <p class="tiny muted" data-installer-detected>Escolha o pacote do seu sistema abaixo.</p>
       </div>
-      <a class="btn" href="downloads/Astral.mrpack?v=2.0" download="Astral 2.0.mrpack" data-modpack-download>Baixar modpack <span aria-hidden="true">↓</span></a>
-      <p class="download-hint muted">Não é preciso descompactar o arquivo nem instalar os mods um por um. O launcher faz isso ao importar o pacote.</p>
+      <div class="installer-next" data-installer-next hidden role="status">
+        <p class="eyebrow">Download iniciado</p>
+        <p class="muted">Abra o arquivo baixado e siga os passos abaixo. No Linux, marque o AppImage como executável nas propriedades do arquivo.</p>
+      </div>
+      <ul class="installer-launchers" aria-label="Launchers compatíveis">
+        <li class="launcher-official"><img class="launcher-logo" src="marca/launchers/minecraft.svg" width="28" height="28" alt="" aria-hidden="true" />Minecraft Launcher</li>
+        <li class="launcher-sklauncher"><img class="launcher-logo" src="marca/launchers/sklauncher.svg" width="28" height="28" alt="" aria-hidden="true" />SKlauncher 4</li>
+        <li class="launcher-prism"><img class="launcher-logo" src="marca/launchers/prism.svg" width="28" height="28" alt="" aria-hidden="true" />Prism Launcher</li>
+      </ul>
+      <h3 id="sistemas" class="installer-systems-title" tabindex="-1">Outros sistemas</h3>
+      <div class="installer-downloads" aria-labelledby="sistemas">
+        <a class="btn btn-ghost" href="https://github.com/dvd-iso/astral-installer/releases/download/v1.2.1/Astral-Installer-1.2.1-win-x64.exe" data-installer-download="win-x64">Windows 64 bits ↓</a>
+        <a class="btn btn-ghost" href="https://github.com/dvd-iso/astral-installer/releases/download/v1.2.1/Astral-Installer-1.2.1-mac-arm64.dmg" data-installer-download="mac-arm64">macOS · Apple Silicon ↓</a>
+        <a class="btn btn-ghost" href="https://github.com/dvd-iso/astral-installer/releases/download/v1.2.1/Astral-Installer-1.2.1-mac-x64.dmg" data-installer-download="mac-x64">macOS · Intel ↓</a>
+        <a class="btn btn-ghost" href="https://github.com/dvd-iso/astral-installer/releases/download/v1.2.1/Astral-Installer-1.2.1-linux-x86_64.AppImage" data-installer-download="linux-x86_64">Linux · x64 ↓</a>
+        <a class="btn btn-ghost" href="https://github.com/dvd-iso/astral-installer/releases/download/v1.2.1/Astral-Installer-1.2.1-linux-arm64.AppImage" data-installer-download="linux-arm64">Linux · ARM64 ↓</a>
+      </div>
+      <p class="tiny muted"><a href="https://github.com/dvd-iso/astral-installer/releases/latest" data-installer-releases target="_blank" rel="noopener">Todas as versões, pacotes .deb e código-fonte ↗</a></p>
     </section>
 
-    <section class="installation-guide" data-launcher-guide="prism" aria-labelledby="prismTitle">
-      <h2 id="prismTitle">Passo a passo · Prism Launcher</h2>
+    <section class="installation-guide" aria-labelledby="stepsTitle">
+      <h2 id="stepsTitle">Passo a passo</h2>
       <ol class="installation-steps">
-        <li><div><h3>Abra o Prism e conecte sua conta</h3><p>Se ainda não tiver o launcher, <a href="https://prismlauncher.org/download/" target="_blank" rel="noopener">baixe o Prism Launcher para seu sistema <span aria-hidden="true">↗</span></a>. Abra o programa e adicione sua conta Microsoft com Minecraft Java em <strong>Configurações → Contas</strong>.</p></div></li>
-        <li><div><h3>Importe o arquivo do Astral</h3><p>Clique em <strong>Adicionar instância → Importar</strong> e selecione o arquivo <strong data-modpack-file>Astral 2.0.mrpack</strong> na pasta de downloads. Confirme a criação da instância.</p><p class="step-path">Adicionar instância <span aria-hidden="true">→</span> Importar <span aria-hidden="true">→</span> <span data-modpack-file>Astral 2.0.mrpack</span></p></div></li>
-        <li><div><h3>Aguarde a instalação e inicie o jogo</h3><p>O Prism baixa os mods e prepara o Minecraft com <span data-modpack-loader>Fabric 0.19.5</span>. Quando terminar, selecione a instância <strong data-name>Astral</strong> e clique em <strong>Jogar</strong>. Se o launcher pedir o Java, siga a configuração indicada por ele.</p></div></li>
-      </ol>
-    </section>
-
-    <section class="installation-guide" data-launcher-guide="sklauncher" aria-labelledby="sklauncherTitle">
-      <h2 id="sklauncherTitle">Passo a passo · SKlauncher</h2>
-      <ol class="installation-steps">
-        <li><div><h3>Abra o SKlauncher com suporte à importação</h3><p>Este guia usa o <strong>SKlauncher 4.0 (beta)</strong>, que permite importar modpacks arrastando o arquivo. <a href="https://next.skmedix.pl/downloads" target="_blank" rel="noopener">Baixe a versão 4.0 para seu sistema <span aria-hidden="true">↗</span></a>, abra o launcher e selecione sua conta.</p></div></li>
-        <li><div><h3>Arraste o pacote para o launcher</h3><p>Encontre <strong data-modpack-file>Astral 2.0.mrpack</strong> na pasta de downloads e arraste o arquivo para a janela do SKlauncher. Confirme a importação do modpack.</p><p class="step-path"><span data-modpack-file>Astral 2.0.mrpack</span> <span aria-hidden="true">→</span> Janela do SKlauncher <span aria-hidden="true">→</span> Importar</p></div></li>
-        <li><div><h3>Espere o download dos mods e jogue</h3><p>Aguarde o launcher preparar a instância com o Minecraft e o Fabric definidos pelo pacote. Depois, selecione <strong data-name>Astral</strong> na biblioteca e clique em <strong>Jogar</strong>.</p></div></li>
-      </ol>
-    </section>
-
-    <section class="installation-guide" data-launcher-guide="modrinth" aria-labelledby="modrinthTitle">
-      <h2 id="modrinthTitle">Passo a passo · Modrinth App</h2>
-      <ol class="installation-steps">
-        <li><div><h3>Abra o Modrinth App e entre na sua conta</h3><p><a href="https://modrinth.com/app" target="_blank" rel="noopener">Baixe o Modrinth App para seu sistema <span aria-hidden="true">↗</span></a>, se necessário. Abra o aplicativo e conecte sua conta Microsoft com Minecraft Java para jogar.</p></div></li>
-        <li><div><h3>Importe o modpack baixado</h3><p>Abra a criação de instâncias pelo botão <strong>+</strong> e escolha <strong>Import from file / Importar de arquivo</strong>. Selecione <strong data-modpack-file>Astral 2.0.mrpack</strong> e confirme a importação.</p><p class="step-path">+ Criar instância <span aria-hidden="true">→</span> Importar de arquivo <span aria-hidden="true">→</span> <span data-modpack-file>Astral 2.0.mrpack</span></p></div></li>
-        <li><div><h3>Deixe o aplicativo preparar tudo</h3><p>O Modrinth baixa as versões dos mods indicadas pelo pack e aplica as configurações. Ao terminar, abra a instância <strong data-name>Astral</strong> na biblioteca e clique em <strong>Play / Jogar</strong>.</p></div></li>
+        <li><div><h3>Abra seu launcher uma vez</h3><p>Instale e abra o <a href="https://www.minecraft.net/download" target="_blank" rel="noopener">Minecraft Launcher ↗</a>, o <a href="https://next.skmedix.pl/downloads" target="_blank" rel="noopener">SKlauncher 4 ↗</a> ou o <a href="https://prismlauncher.org/download/" target="_blank" rel="noopener">Prism Launcher ↗</a>. Configure sua conta nele e depois feche o jogo e o launcher.</p></div></li>
+        <li><div><h3>Escolha seu launcher no Astral Installer</h3><p>Abra o aplicativo que você baixou, clique no cartão do seu launcher e depois em <strong>Instalar Astral</strong>. A pasta é detectada automaticamente; se necessário, use <strong>Localizar launcher</strong>. No Linux, marque o AppImage como executável nas propriedades do arquivo.</p></div></li>
+        <li><div><h3>Selecione Astral no launcher</h3><p>Ao terminar, use o botão para abrir seu launcher e selecione <strong>Astral</strong>. No oficial, habilite <strong>Modificadas</strong> se o perfil estiver oculto. No SKlauncher 4, use <strong>Instalar</strong> na instância para a primeira preparação do Minecraft e do Java. O Prism prepara os arquivos necessários ao jogar.</p></div></li>
+        <li><div><h3>Atualize pelo mesmo aplicativo</h3><p>Para receber novidades, feche o jogo e o launcher, abra o Astral Installer, escolha o mesmo launcher e clique em <strong>Buscar atualizações → Atualizar modpack</strong>. Seus mundos e preferências são preservados, e os arquivos substituídos ficam em backup.</p></div></li>
       </ol>
     </section>
 
@@ -97,15 +90,13 @@
       <p class="muted">Com o jogo aberto, clique em <strong>Jogar no menu do modpack</strong> para entrar no Astral.</p>
       <p class="tiny muted">Siga as orientações da interface do nLogin para concluir seu acesso dentro do Minecraft. Precisa de ajuda? <a href="#" data-fluxer hidden target="_blank" rel="noopener">Fale com a comunidade no Fluxer.</a></p>
     </section>
-    <p class="installation-exit"><a href="jogar.html#conectar">Prefiro continuar sem o modpack <span aria-hidden="true">→</span></a></p>
   </main>
 
   <footer>
     <div class="footer-meta"><p><span data-name>Astral</span> · Feito de blocos. Lembrado por pessoas.</p><p class="footer-legal">Não afiliado à Mojang ou à Microsoft.</p></div>
     <button class="motion-toggle" type="button" data-motion-toggle aria-pressed="false" hidden><span class="motion-icon" aria-hidden="true"></span><span data-motion-label>Pausar animações</span></button>
   </footer>
-  <script src="config.js?v=16"></script>
-  <script src="app.js?v=16"></script>
-  <script src="instalar.js?v=15"></script>
+  <script src="config.js?v=19"></script>
+  <script src="app.js?v=19"></script>
 </body>
 </html>

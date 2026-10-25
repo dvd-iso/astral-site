@@ -6,7 +6,7 @@ Site estático em HTML/CSS/JavaScript, publicado no **GitHub Pages**.
 - Regras e instruções de acesso direto ao Minecraft.
 - Endereço para copiar e status ao vivo via [mcsrvstat.us](https://mcsrvstat.us).
 - Link para a comunidade no Fluxer.
-- Download do modpack e tutoriais para Prism Launcher, SKlauncher e Modrinth App.
+- Astral Installer para Windows, macOS e Linux, que instala e atualiza o modpack no Minecraft Launcher, SKlauncher 4 ou Prism.
 
 ## Páginas
 
@@ -16,16 +16,16 @@ Site estático em HTML/CSS/JavaScript, publicado no **GitHub Pages**.
 | Sobre | `sobre.html` | proposta, RPG, progressão narrativa e comunidade |
 | Regras | `regras.html` | combinados ilustrados com cenas 8-bit |
 | Ajuda de acesso | `jogar.html` | instruções para links diretos e guias da comunidade |
-| Instalar o modpack | `instalar.html?launcher=prism` | guia do Prism; também aceita `sklauncher` e `modrinth` |
+| Instalar o modpack | `instalar.html` | download do Astral Installer para o sistema do visitante e passo a passo |
 
 Todas usam `style.css`, `config.js` e `app.js`. A barra superior reúne Início,
-Sobre e Regras. **Jogar abre uma janela para escolher o launcher**, com as três
-opções e o link discreto **Continuar sem baixar o modpack**. Ao escolher um
-launcher, o visitante abre seu tutorial e o navegador recebe o pedido de download.
+Sobre e Regras. **Jogar abre uma janela para baixar o Astral Installer**, com o
+botão principal já apontando para o sistema detectado, os launchers compatíveis
+e o link para os outros sistemas. Não há opção de seguir sem o modpack na janela
+nem na página de instalação. Ao clicar no download, a janela mostra os próximos passos.
 A janela fecha pelo botão de fechar, Escape ou clique fora, e devolve o foco ao
 link que a abriu. No celular, o botão Jogar permanece visível; os links da
-navegação ficam no menu compacto. O IP e o botão de copiar aparecem na página
-de acesso para quem escolhe continuar sem o modpack, com confirmação acessível.
+navegação ficam no menu compacto, e a janela orienta abrir a página no computador.
 
 ## Configuração
 
@@ -37,6 +37,7 @@ Edite `config.js`:
 | `serverAddress` | endereço do Minecraft |
 | `serverVersion` | edição e versão exibidas |
 | `modpack` | URL direta, nome do arquivo e versões do modpack, Minecraft e loader |
+| `installer` | versão do aplicativo, URL-base dos instaladores e link das releases |
 | `fluxerInviteUrl` | convite da comunidade, opcional |
 | `rules` | regras da página Regras |
 | `ruleCards` | título e ID da arte de cada regra, na mesma ordem de `rules` |
@@ -63,33 +64,25 @@ e a capa de `i.ytimg.com`.
 
 ## Modpack e instalação
 
-- `downloads/Astral.mrpack` é a cópia de distribuição do Astral 2.0, baixada
-  como `Astral 2.0.mrpack`. O link usa `?v=2.0` para renovar o cache.
-  Mantém mods, configurações e recursos do pack, sem caches de execução,
-  históricos, dados do jogador nem lista pessoal de servidores.
-- `modpack` em `config.js` concentra `downloadUrl`, `fileName`, `version`,
-  `minecraftVersion`, `loader` e `loaderVersion`. Confira esses valores no
-  `modrinth.index.json` ao substituir o pacote.
-- Os três launchers recebem o mesmo arquivo. `instalar.js` seleciona o guia
-  conforme `?launcher=prism`, `?launcher=sklauncher` ou `?launcher=modrinth`.
-  Sem uma escolha válida, a página mostra todos os guias.
-- Os links da janela acrescentam `&download=1`. O tutorial consome esse parâmetro
-  antes de solicitar o download, para que recarregar ou voltar não baixe novamente.
-  Abrir um guia diretamente ou trocar de guia não dispara downloads.
-- O arquivo é servido no próprio site e o link usa o atributo `download`, para
-  manter o tutorial aberto. Se o navegador bloquear o início automático, o botão
-  **Baixar modpack** permite repetir a tentativa.
-- O guia do SKlauncher usa **4.0 beta**, cuja importação permite arrastar o
-  `.mrpack` para a janela. Prism e Modrinth App pedem uma conta Microsoft com
-  Minecraft Java; os respectivos passos informam isso.
-- Sem JavaScript, Jogar leva à página de acesso; o download manual e todos os
-  passos de instalação continuam disponíveis.
-- Os logotipos oficiais dos launchers ficam em `marca/launchers/`, com as fontes
-  e os créditos no README desse diretório. São imagens SVG locais, exibidas com
-  suas proporções originais na janela de escolha e nos links dos guias.
-- O último passo do tutorial orienta a entrar pelo botão Jogar do próprio
-  modpack. O endereço fica em `jogar.html#conectar`, acessível pelo link para
-  continuar sem baixar o pacote.
+- O site distribui o modpack somente pelo **Astral Installer**, que instala e
+  atualiza o Astral no Minecraft Launcher, no SKlauncher 4 ou no Prism. Seu código,
+  builds e canal de atualização estão em [dvd-iso/astral-installer](https://github.com/dvd-iso/astral-installer).
+- `app.js` detecta o sistema pelo navegador (`navigator.userAgentData` quando
+  disponível, com a arquitetura nos navegadores Chromium) e aponta os elementos
+  `data-installer-primary` para o pacote correspondente. No Mac sem essa
+  informação, o padrão é Apple Silicon; os demais sistemas ficam em
+  `instalar.html#sistemas`, com o detectado destacado.
+- `installer.version` e `installer.downloadBaseUrl` em `config.js` correspondem
+  à release do **aplicativo**, não à versão do modpack. Ao publicar uma nova
+  versão do instalador, atualize também os links de fallback em `instalar.html`.
+- `downloads/Astral.mrpack` continua sendo a cópia de distribuição do Astral 2.0.
+  `modpack` em `config.js` informa as versões exibidas na página; confira esses
+  valores no `modrinth.index.json` ao substituir o pacote.
+- Sem JavaScript, Jogar leva à página de acesso e `instalar.html` mostra todos
+  os downloads do instalador.
+- Os logotipos dos launchers ficam em `marca/launchers/`, com as fontes e os
+  créditos no README desse diretório.
+- O último passo do tutorial orienta a entrar pelo botão Jogar do próprio modpack.
 
 ## Lore e movimento
 
@@ -103,19 +96,19 @@ completo de cada regra permanece em `rules`, também lido pelos guias do bot.
 
 - `lore` e `memoryFragments` ficam em `config.js`.
 - `style.css` cuida das animações e microinterações.
-- A janela de launchers abre com fade e escala suaves, com os cartões entrando
+- A janela do instalador abre com fade e escala suaves, com o conteúdo entrando
   em sequência. A animação é repetida ao reabrir e respeita a opção de pausar
   animações e a preferência de movimento reduzido do sistema.
 - `app.js` cuida do céu, do livro, das regras ilustradas, da cópia do IP e da
-  preferência de movimento, além da janela de escolha do launcher.
+  preferência de movimento, além da janela de download do instalador.
 - **Pausar animações**, no rodapé, guarda a escolha entre as páginas.
 - A preferência de movimento reduzido do sistema é respeitada.
 - O conteúdo principal continua visível com JavaScript desativado.
 
 Os links relativos funcionam no domínio próprio e em `/astral-site/`. Os atalhos
 `#sobre` e `#regras` na página inicial levam às páginas correspondentes;
-`#status` permanece na página inicial. A escolha de launcher abre a página de
-instalação; o link para continuar sem baixar leva a `jogar.html#conectar`.
+`#status` permanece na página inicial. O link de outros sistemas abre a página de
+instalação do Astral Installer.
 
 ## Publicação
 

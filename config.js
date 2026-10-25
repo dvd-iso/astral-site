@@ -11,7 +11,7 @@ window.ASTRAL_CONFIG = {
   // Versão exibida no site
   serverVersion: "Java 26.3",
 
-  // Pacote compartilhado pelos três launchers. Use um link direto no próprio site.
+  // Pacote compartilhado pelos launchers e pelo Astral Installer.
   // Ao trocar o arquivo, atualize também as versões conforme modrinth.index.json.
   modpack: {
     downloadUrl: "downloads/Astral.mrpack?v=2.0",
@@ -20,6 +20,14 @@ window.ASTRAL_CONFIG = {
     minecraftVersion: "26.3",
     loader: "Fabric",
     loaderVersion: "0.19.5",
+  },
+
+  // Atualize estes dois valores quando publicar uma nova versão do aplicativo.
+  // Atualizações do modpack são publicadas no channel/stable.json do instalador.
+  installer: {
+    version: "1.2.1",
+    downloadBaseUrl: "https://github.com/dvd-iso/astral-installer/releases/download/v1.2.1/",
+    releasesUrl: "https://github.com/dvd-iso/astral-installer/releases/latest",
   },
 
   // Link de convite da comunidade no Fluxer (opcional, deixe "" para esconder o botão)

@@ -3,6 +3,12 @@
 `Astral.mrpack` é a cópia de distribuição do **Astral 2.0**, usada pelos três
 guias de instalação e baixada como `Astral 2.0.mrpack`.
 
+O **[Astral Installer](https://github.com/dvd-iso/astral-installer)** também usa
+esse pacote para instalar e atualizar o modpack no Minecraft Launcher oficial.
+O canal dele fica em `channel/stable.json` no repositório do instalador. Ao trocar
+o pacote, publique o novo arquivo e atualize também esse canal com
+`npm run pack:publish`; tamanho e SHA-512 precisam corresponder ao download.
+
 - Versão no manifesto do pack: **1.0.0**.
 - Minecraft: **26.3**.
 - Fabric Loader: **0.19.5**.
