@@ -6,7 +6,7 @@ Site estático em HTML/CSS/JavaScript, publicado no **GitHub Pages**.
 - Regras e instruções de acesso direto ao Minecraft.
 - Endereço para copiar e status ao vivo via [mcsrvstat.us](https://mcsrvstat.us).
 - Link para a comunidade no Discord.
-- Astral Installer para Windows, macOS e Linux, que instala e atualiza o modpack no Minecraft Launcher, SKlauncher 4 ou Prism.
+- Astral Installer para Windows, macOS e Linux, que instala e atualiza o modpack no Minecraft Launcher, SKlauncher 4, Prism ou Modrinth App.
 
 ## Páginas
 
@@ -65,7 +65,7 @@ e a capa de `i.ytimg.com`.
 ## Modpack e instalação
 
 - O site distribui o modpack somente pelo **Astral Installer**, que instala e
-  atualiza o Astral no Minecraft Launcher, no SKlauncher 4 ou no Prism. Seu código,
+  atualiza o Astral no Minecraft Launcher, no SKlauncher 4, no Prism ou no Modrinth App. Seu código,
   builds e canal de atualização estão em [dvd-iso/astral-installer](https://github.com/dvd-iso/astral-installer).
 - `app.js` detecta o sistema pelo navegador (`navigator.userAgentData` quando
   disponível, com a arquitetura nos navegadores Chromium) e aponta os elementos
