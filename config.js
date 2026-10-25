@@ -25,8 +25,8 @@ window.ASTRAL_CONFIG = {
   // Atualize estes dois valores quando publicar uma nova versão do aplicativo.
   // Atualizações do modpack são publicadas no channel/stable.json do instalador.
   installer: {
-    version: "1.2.1",
-    downloadBaseUrl: "https://github.com/dvd-iso/astral-installer/releases/download/v1.2.1/",
+    version: "1.2.2",
+    downloadBaseUrl: "https://github.com/dvd-iso/astral-installer/releases/download/v1.2.2/",
     releasesUrl: "https://github.com/dvd-iso/astral-installer/releases/latest",
   },
 
