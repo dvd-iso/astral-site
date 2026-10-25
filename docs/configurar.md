@@ -75,8 +75,12 @@ e a capa de `i.ytimg.com`.
 - `installer.version` e `installer.downloadBaseUrl` em `config.js` correspondem
   à release do **aplicativo**, não à versão do modpack. Ao publicar uma nova
   versão do instalador, atualize também os links de fallback em `instalar.html`.
+- Novas versões do modpack são publicadas no repositório do instalador, anexando o
+  `.mrpack` a uma release (veja o README dele). A página de instalação lê as versões
+  do pack em `installer.channelUrl`, o canal do instalador; os valores de `modpack`
+  em `config.js` ficam como reserva se o canal não responder.
 - `downloads/Astral.mrpack` continua sendo a cópia de distribuição do Astral 2.0.
-  `modpack` em `config.js` informa as versões exibidas na página; confira esses
+  `modpack` em `config.js` guarda as versões de reserva da página; confira esses
   valores no `modrinth.index.json` ao substituir o pacote.
 - Sem JavaScript, Jogar leva à página de acesso e `instalar.html` mostra todos
   os downloads do instalador.

@@ -113,6 +113,24 @@
     });
   }
 
+  // O canal do Astral Installer traz as versões publicadas; config.js fica como reserva.
+  if (cfg.installer?.channelUrl && document.querySelector("[data-modpack-version]")) {
+    fetch(cfg.installer.channelUrl, { cache: "no-cache" })
+      .then((response) => (response.ok ? response.json() : Promise.reject(new Error(`HTTP ${response.status}`))))
+      .then((channel) => {
+        const labels = {
+          "data-modpack-version": channel.version,
+          "data-modpack-minecraft": channel.minecraftVersion,
+          "data-modpack-loader": channel.fabricLoader && `Fabric ${channel.fabricLoader}`,
+        };
+        Object.entries(labels).forEach(([attribute, text]) => {
+          if (typeof text !== "string" || !text) return;
+          document.querySelectorAll(`[${attribute}]`).forEach((element) => (element.textContent = text));
+        });
+      })
+      .catch(() => {});
+  }
+
   // ---------- Astral Installer: download para o sistema do visitante ----------
   const installerPlatforms = {
     "win-x64": "Windows",

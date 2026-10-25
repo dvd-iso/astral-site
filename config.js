@@ -28,6 +28,8 @@ window.ASTRAL_CONFIG = {
     version: "1.2.2",
     downloadBaseUrl: "https://github.com/dvd-iso/astral-installer/releases/download/v1.2.2/",
     releasesUrl: "https://github.com/dvd-iso/astral-installer/releases/latest",
+    // Canal lido pela página de instalação para mostrar as versões do modpack publicadas.
+    channelUrl: "https://raw.githubusercontent.com/dvd-iso/astral-installer/main/channel/stable.json",
   },
 
   // Link de convite da comunidade no Discord (opcional, deixe "" para esconder o botão)
