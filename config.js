@@ -30,8 +30,8 @@ window.ASTRAL_CONFIG = {
     releasesUrl: "https://github.com/dvd-iso/astral-installer/releases/latest",
   },
 
-  // Link de convite da comunidade no Fluxer (opcional, deixe "" para esconder o botão)
-  fluxerInviteUrl: "https://fluxer.gg/9LVGkUy6",
+  // Link de convite da comunidade no Discord (opcional, deixe "" para esconder o botão)
+  discordInviteUrl: "https://discord.gg/shrznbFeM",
 
   // Fragmentos da lore usados nas páginas e no livro interativo.
   // "fonte" é opcional.
@@ -53,7 +53,7 @@ window.ASTRAL_CONFIG = {
 
   // Regras mostradas na página Regras (uma por linha, na ordem)
   rules: [
-    "Respeito acima de tudo: nada de ofensas, preconceito ou assédio, no jogo e no Fluxer.",
+    "Respeito acima de tudo: nada de ofensas, preconceito ou assédio, no jogo e no Discord.",
     "Nada de grief, roubo ou destruir o que é dos outros sem combinar antes.",
     "Proibido hack, x-ray, auto-clicker ou qualquer mod que dê vantagem. Mods visuais e de desempenho podem.",
     "Não use bugs nem duplicação de itens. Achou um? Avise a staff.",
@@ -61,7 +61,7 @@ window.ASTRAL_CONFIG = {
     "PvP só com o consentimento dos dois lados ou dentro de eventos.",
     "Seu personagem pode fazer escolhas boas ou ruins. Conflitos de RPG com outros jogadores exigem acordo prévio e respeito às regras da comunidade.",
     "Sem spam, propaganda ou divulgação de outros servidores.",
-    "A palavra final é da staff. Algum problema? Fale com a gente no Fluxer.",
+    "A palavra final é da staff. Algum problema? Fale com a gente no Discord.",
   ],
 
   // Títulos e cenas 8-bit, na mesma ordem das regras acima.

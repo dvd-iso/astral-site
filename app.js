@@ -167,10 +167,10 @@
     document.querySelectorAll("[data-installer-next]").forEach((element) => (element.hidden = false));
   });
 
-  // Botões/links para a comunidade no Fluxer
-  if (cfg.fluxerInviteUrl) {
-    document.querySelectorAll("[data-fluxer]").forEach((a) => {
-      a.href = cfg.fluxerInviteUrl;
+  // Botões/links para a comunidade no Discord
+  if (cfg.discordInviteUrl) {
+    document.querySelectorAll("[data-discord]").forEach((a) => {
+      a.href = cfg.discordInviteUrl;
       a.hidden = false;
     });
   }

@@ -5,7 +5,7 @@ Site estático em HTML/CSS/JavaScript, publicado no **GitHub Pages**.
 - Apresentação do mundo, da comunidade e do RPG.
 - Regras e instruções de acesso direto ao Minecraft.
 - Endereço para copiar e status ao vivo via [mcsrvstat.us](https://mcsrvstat.us).
-- Link para a comunidade no Fluxer.
+- Link para a comunidade no Discord.
 - Astral Installer para Windows, macOS e Linux, que instala e atualiza o modpack no Minecraft Launcher, SKlauncher 4 ou Prism.
 
 ## Páginas
@@ -38,7 +38,7 @@ Edite `config.js`:
 | `serverVersion` | edição e versão exibidas |
 | `modpack` | URL direta, nome do arquivo e versões do modpack, Minecraft e loader |
 | `installer` | versão do aplicativo, URL-base dos instaladores e link das releases |
-| `fluxerInviteUrl` | convite da comunidade, opcional |
+| `discordInviteUrl` | convite da comunidade no Discord, opcional |
 | `rules` | regras da página Regras |
 | `ruleCards` | título e ID da arte de cada regra, na mesma ordem de `rules` |
 | `lore` | fragmentos da história e suas fontes |
