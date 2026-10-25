@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; frame-src 'none'; connect-src 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <meta name="robots" content="noindex" />
+  <meta name="theme-color" content="#050508" />
+  <title>Publicar modpack — Astral</title>
+  <link rel="preload" href="fonts/Monocraft.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="stylesheet" href="style.css?v=20" />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+</head>
+<body>
+  <main id="conteudo">
+    <section class="block page-cta" aria-labelledby="publicarTitle">
+      <p class="eyebrow">Equipe do Astral</p>
+      <h2 id="publicarTitle">Abrindo o GitHub…</h2>
+      <p class="muted">Tag da nova versão: <strong id="tagModpack">modpack</strong></p>
+      <p class="muted">No formulário, arraste o <strong>.mrpack</strong> para os anexos, escreva o que mudou e clique em <strong>Publish release</strong>.</p>
+      <a class="btn" id="abrirGithub" href="https://github.com/dvd-iso/astral-installer/releases/new">Abrir o formulário <span aria-hidden="true">↗</span></a>
+    </section>
+  </main>
+  <script src="publicar-modpack.js"></script>
+</body>
+</html>
