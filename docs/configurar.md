@@ -1,4 +1,6 @@
-# Astral — site do servidor de Minecraft
+# Configurar e publicar o site
+
+[← Voltar ao README](../README.md)
 
 Site estático em HTML/CSS/JavaScript, publicado no **GitHub Pages**.
 
@@ -17,6 +19,7 @@ Site estático em HTML/CSS/JavaScript, publicado no **GitHub Pages**.
 | Regras | `regras.html` | combinados ilustrados com cenas 8-bit |
 | Ajuda de acesso | `jogar.html` | instruções para links diretos e guias da comunidade |
 | Instalar o modpack | `instalar.html` | download do Astral Installer para o sistema do visitante e passo a passo |
+| Privacidade | `privacidade.html` | política de privacidade do site, do servidor e do instalador |
 
 Todas usam `style.css`, `config.js` e `app.js`. A barra superior reúne Início,
 Sobre e Regras. **Jogar abre uma janela para baixar o Astral Installer**, com o
@@ -117,7 +120,7 @@ instalação do Astral Installer.
 ## Publicação
 
 No GitHub, configure **Settings → Pages → Deploy from a branch → `main` /
-`(root)`**. As cinco páginas são servidas diretamente, sem etapa de build.
+`(root)`**. As páginas são servidas diretamente, sem etapa de build.
 
 O arquivo `CNAME` configura o domínio **astralmc.online**. Registros DNS:
 
@@ -134,9 +137,9 @@ HTTPS** habilitado no GitHub Pages.
 ## Conteúdo do jogo e créditos
 
 Construções, schematics, datapacks, itens, modelos, texturas, regiões e MOTDs
-ficam no [AtlasHistoria](https://github.com/dvd-iso/AtlasHistoria), em
-`construcoes/` e `marca/`. A imagem `marca/fluxer-icon.png` é usada pelo README
-deste site; os textos públicos da lore ficam em `config.js`.
+ficam no repositório privado `dvd-iso/astral-plugin`, em `construcoes/` e
+`marca/`. A imagem `marca/fluxer-icon.png` é usada nas anotações de
+`docs/anotacoes.md`; os textos públicos da lore ficam em `config.js`.
 
 A fonte [Monocraft](https://github.com/IdreesInc/Monocraft), de Idrees Hassan,
 usa a SIL Open Font License 1.1, disponível em `fonts/OFL.txt`.

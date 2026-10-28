@@ -350,6 +350,12 @@ html.play-dialog-open { overflow: hidden; }
 footer { width: calc(100% - 32px); max-width: calc(var(--wrap) - 32px); margin: 32px auto 0; padding: 20px 0 24px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 24px; color: var(--muted); font-size: 10px; }
 .footer-meta p { margin: 0; }
 .footer-meta .footer-legal { margin-top: 5px; color: #827c94; font-size: 9px; }
+.footer-legal a { color: inherit; }
+.footer-legal a:hover { color: var(--text, #fff); }
+.legal h3 { font-size: 13px; margin: 22px 0 10px; }
+.legal ul { margin: 0 0 14px; padding-left: 20px; line-height: 1.9; }
+.legal li { margin-bottom: 6px; }
+.legal code { font-size: 0.95em; }
 .motion-toggle { display: inline-flex; align-items: center; gap: 8px; flex: none; border: 1px solid var(--border2); background: transparent; color: var(--muted); font: inherit; font-size: 9px; padding: 8px 10px; cursor: pointer; }
 .motion-toggle:hover { border-color: var(--purple); color: var(--text); }
 .motion-toggle:disabled { cursor: default; }

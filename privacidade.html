@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; frame-src 'none'; connect-src 'self' https://api.mcsrvstat.us; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <meta name="theme-color" content="#050508" />
+  <title>Privacidade — Astral</title>
+  <meta name="description" content="Política de privacidade do Astral: o que o site, o servidor e o Astral Installer guardam, para quê e como pedir a remoção dos seus dados." />
+  <link rel="preload" href="fonts/Monocraft.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="stylesheet" href="style.css?v=21" />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+</head>
+<body data-page="privacidade" data-page-title="Privacidade">
+  <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+  <svg class="sprite" aria-hidden="true">
+    <symbol id="star" viewBox="0 0 17 17">
+      <path class="star-line" d="M8 0h1v2h-1zM8 15h1v2h-1zM0 8h2v1h-2zM15 8h2v1h-2zM7 2h1v3h-1zM9 2h1v3h-1zM7 12h1v3h-1zM9 12h1v3h-1zM2 7h3v1h-3zM12 7h3v1h-3zM2 9h3v1h-3zM12 9h3v1h-3zM4 4h2v1h-2zM11 4h2v1h-2zM4 12h2v1h-2zM11 12h2v1h-2zM4 5h1v1h-1zM12 5h1v1h-1zM4 11h1v1h-1zM12 11h1v1h-1zM6 5h1v1h-1zM10 5h1v1h-1zM6 11h1v1h-1zM10 11h1v1h-1zM5 6h1v1h-1zM11 6h1v1h-1zM5 10h1v1h-1zM11 10h1v1h-1z" />
+      <path class="star-core" d="M8 7h1v1h-1zM7 8h3v1h-3zM8 9h1v1h-1z" />
+    </symbol>
+  </svg>
+  <canvas id="stars" aria-hidden="true"></canvas>
+
+  <header class="nav">
+    <a href="index.html" class="logo" aria-label="Astral — Início"><svg class="pixel-star logo-star" aria-hidden="true"><use href="#star" /></svg><span data-name>Astral</span></a>
+    <nav id="siteNavigation" aria-label="Navegação principal">
+      <a href="index.html">Início</a><a href="sobre.html">Sobre</a><a href="regras.html">Regras</a>
+      <a href="#" class="nav-mobile-community" data-discord hidden target="_blank" rel="noopener">Discord ↗</a>
+    </nav>
+    <div class="nav-actions">
+      <a href="jogar.html" class="btn btn-small play-button" data-play>Jogar</a>
+      <a href="#" class="btn btn-small btn-ghost nav-community" data-discord hidden target="_blank" rel="noopener">Discord ↗</a>
+      <button type="button" class="nav-toggle" id="navToggle" aria-label="Abrir menu" aria-controls="siteNavigation" aria-expanded="false" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path class="menu-bars" d="M4 5h16v2H4zM4 11h16v2H4zM4 17h16v2H4z"/><path class="menu-cross" d="M5 5h3v3H5zM8 8h3v3H8zM11 11h3v3h-3zM14 14h3v3h-3zM17 17h3v3h-3zM17 5h3v3h-3zM14 8h3v3h-3zM8 14h3v3H8zM5 17h3v3H5z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main id="conteudo" tabindex="-1">
+    <header class="page-header">
+      <p class="eyebrow"><svg class="pixel-icon" aria-hidden="true" focusable="false"><use href="icons.svg#scroll" /></svg>Política de privacidade</p>
+      <h1>Seus dados,<br><span class="text-accent">guardados com cuidado.</span></h1>
+      <p class="tagline">Guardamos só o que o jogo precisa. Não vendemos dados, não usamos anúncios e não pedimos seu e-mail.</p>
+    </header>
+
+    <section class="block legal" aria-labelledby="resumoTitle">
+      <header class="block-head"><h2 id="resumoTitle">Em resumo</h2></header>
+      <ul>
+        <li><strong>Site:</strong> sem cookies, sem rastreamento e sem formulários.</li>
+        <li><strong>Servidor:</strong> guarda sua conta do Minecraft (UUID e nick), seu progresso e, se você vincular, sua conta do Discord.</li>
+        <li><strong>Astral Installer:</strong> não coleta nada; tudo fica no seu computador.</li>
+        <li>Você pode pedir acesso, correção ou remoção dos seus dados a qualquer momento.</li>
+      </ul>
+      <p class="muted">Esta política segue a Lei Geral de Proteção de Dados (LGPD, Lei nº 13.709/2018). Última atualização: 28 de outubro de 2026.</p>
+    </section>
+
+    <section class="block legal" aria-labelledby="siteTitle">
+      <header class="block-head"><h2 id="siteTitle">Este site</h2></header>
+      <p>O site é estático e hospedado no <strong>GitHub Pages</strong>, que registra dados técnicos de cada acesso (como endereço IP) conforme a <a href="https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">política do GitHub</a>. Nós não temos acesso a esses registros.</p>
+      <ul>
+        <li><strong>Status do servidor:</strong> o seu navegador consulta o <a href="https://mcsrvstat.us" target="_blank" rel="noopener">mcsrvstat.us</a> para mostrar se o servidor está online.</li>
+        <li><strong>Versões do modpack:</strong> a página de instalação lê um arquivo público no GitHub.</li>
+        <li><strong>Vídeo:</strong> o YouTube só é carregado quando você clica na capa, pelo modo de privacidade aprimorada (<code>youtube-nocookie.com</code>).</li>
+        <li><strong>Preferência de animações:</strong> fica salva apenas no seu navegador (<code>localStorage</code>) e nunca é enviada.</li>
+      </ul>
+      <p class="muted">Não usamos cookies, ferramentas de análise, pixels de rastreamento nem anúncios.</p>
+    </section>
+
+    <section class="block legal" aria-labelledby="servidorTitle">
+      <header class="block-head"><h2 id="servidorTitle">O servidor de Minecraft</h2></header>
+      <h3>O que guardamos</h3>
+      <ul>
+        <li><strong>Conta do Minecraft:</strong> UUID e nick, para reconhecer você entre sessões.</li>
+        <li><strong>Progresso:</strong> magias, casas, alinhamento, sonhos, personagens e as cartas do correio (com remetente e destinatário).</li>
+        <li><strong>Última atividade:</strong> para tirar da whitelist quem passar mais de 30 dias sem jogar. Seu progresso é preservado.</li>
+        <li><strong>Discord (se você vincular):</strong> ID e nome de usuário, data do vínculo e situação na comunidade. Entradas e saídas são registradas num canal de moderação.</li>
+        <li><strong>Logs do servidor:</strong> entradas, saídas, comandos e endereço IP da conexão, para segurança e moderação.</li>
+      </ul>
+      <h3>Discord</h3>
+      <p>A vinculação pede ao Discord só os escopos <code>identify</code> (ID e nome) e <code>guilds.join</code> (entrar na comunidade). Não pedimos e-mail, mensagens nem sua lista de servidores, e os tokens de autorização não são gravados.</p>
+      <h3>Login</h3>
+      <p>Senhas e 2FA são tratados pelo plugin nLogin; o sistema do Astral não lê nem guarda senhas. Contas originais são verificadas pelos serviços oficiais da Mojang/Microsoft.</p>
+      <h3>Por quanto tempo</h3>
+      <p>Enquanto o servidor e seu personagem existirem, ou até você pedir a remoção. Registros de banimento podem ser mantidos para proteger a comunidade, e os logs são removidos periodicamente.</p>
+      <p class="muted">Os dados ficam no servidor do Astral e só são acessados pela equipe. Fora o Discord e a Mojang/Microsoft, nada é compartilhado, exceto por obrigação legal.</p>
+    </section>
+
+    <section class="block legal" aria-labelledby="instaladorTitle">
+      <header class="block-head"><h2 id="instaladorTitle">Astral Installer</h2></header>
+      <p>O instalador não tem telemetria, anúncios nem contas, e não lê suas credenciais. Ele só baixa o modpack e as informações do Minecraft e do Fabric; preferências, logs e backups ficam no seu computador. Detalhes na <a href="https://github.com/dvd-iso/astral-installer/blob/main/PRIVACY.md" target="_blank" rel="noopener">política do instalador</a>.</p>
+    </section>
+
+    <section class="block legal" aria-labelledby="direitosTitle">
+      <header class="block-head"><h2 id="direitosTitle">Seus direitos e contato</h2></header>
+      <p>Você pode pedir <strong>acesso</strong>, <strong>correção</strong> ou <strong>remoção</strong> dos seus dados, ou <strong>desvincular</strong> seu Discord, falando com a equipe <a href="https://discord.gg/shrznbFeM" data-discord target="_blank" rel="noopener">no Discord do Astral</a>. Podemos pedir uma confirmação de que a conta é sua.</p>
+      <p class="muted">Menores de 18 anos devem jogar com o conhecimento dos pais ou responsáveis, que também podem fazer esses pedidos. Mudanças nesta política são publicadas nesta página.</p>
+    </section>
+  </main>
+
+  <footer>
+    <div class="footer-meta"><p><span data-name>Astral</span> · Feito de blocos. Lembrado por pessoas.</p><p class="footer-legal">Não afiliado à Mojang ou à Microsoft. · <a href="privacidade.html">Privacidade</a></p></div>
+    <button class="motion-toggle" type="button" data-motion-toggle aria-pressed="false" hidden><span class="motion-icon" aria-hidden="true"></span><span data-motion-label>Pausar animações</span></button>
+  </footer>
+  <script src="config.js?v=25"></script>
+  <script src="app.js?v=22"></script>
+</body>
+</html>
