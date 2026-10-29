@@ -7,9 +7,9 @@
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <meta name="theme-color" content="#050508" />
   <title>Instalar o modpack — Astral</title>
-  <meta name="description" content="Baixe o Astral Installer para Windows, macOS ou Linux e instale o modpack do Astral no Minecraft Launcher, SKlauncher, Prism ou Modrinth App." />
+  <meta name="description" content="Instale o modpack do Astral com um comando no terminal, no Windows, macOS ou Linux: Prism Launcher, Modrinth App, Minecraft Launcher ou SKlauncher." />
   <link rel="preload" href="fonts/Monocraft.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="style.css?v=21" />
+  <link rel="stylesheet" href="style.css?v=22" />
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
 </head>
 <body data-page="instalar" data-page-title="Instalar o modpack">
@@ -40,43 +40,68 @@
   <main id="conteudo" tabindex="-1">
     <header class="page-header">
       <p class="eyebrow"><svg class="pixel-icon" aria-hidden="true" focusable="false"><use href="icons.svg#spark" /></svg>A experiência completa</p>
-      <h1>Instale o <span data-name>Astral</span><br><span class="text-accent">em poucos cliques.</span></h1>
-      <p class="tagline">O Astral Installer instala e atualiza o modpack no Minecraft Launcher, no SKlauncher 4, no Prism Launcher ou no Modrinth App. Baixe para o seu sistema e escolha seu launcher no aplicativo.</p>
+      <h1>Instale o <span data-name>Astral</span><br><span class="text-accent">com um comando.</span></h1>
+      <p class="tagline">Cole o comando no terminal e o instalador do Astral abre na mesma janela. Ele prepara o modpack no Prism Launcher, no Modrinth App, no Minecraft Launcher ou no SKlauncher 4. Depois, o próprio jogo cuida das atualizações.</p>
       <ul class="identity-tags" aria-label="Versões do modpack">
         <li>Minecraft <span data-modpack-minecraft>26.3</span></li><li data-modpack-loader>Fabric 0.19.5</li><li>Pack <span data-modpack-version>1.0.0</span></li>
       </ul>
     </header>
 
     <section class="block installer-card" aria-labelledby="installerTitle">
-      <p class="eyebrow">Astral Installer</p>
-      <h2 id="installerTitle">Seu launcher. O Astral pronto para jogar.</h2>
-      <div class="installer-offer">
-        <a class="btn installer-primary" href="#sistemas" data-installer-primary><span data-installer-primary-label>Baixar Astral Installer</span> <span aria-hidden="true">↓</span></a>
-        <p class="tiny muted" data-installer-detected>Escolha o pacote do seu sistema abaixo.</p>
+      <p class="eyebrow">Instalador do Astral</p>
+      <h2 id="installerTitle">Copie, cole no terminal e escolha seu launcher.</h2>
+      <div class="os-choice" data-os-choice hidden role="group" aria-label="Seu sistema">
+        <button type="button" data-os="windows" aria-pressed="false">Windows</button>
+        <button type="button" data-os="macos" aria-pressed="false">macOS</button>
+        <button type="button" data-os="linux" aria-pressed="false">Linux</button>
       </div>
+      <div class="command-panels" data-command-panels>
+        <div class="command-panel" data-os-panel="windows">
+          <h3 class="command-os">Windows</h3>
+          <p class="muted">Abra o <strong>PowerShell</strong>: aperte a tecla <kbd>Windows</kbd>, digite <kbd>PowerShell</kbd> e aperte <kbd>Enter</kbd>. Cole o comando com <kbd>Ctrl</kbd>+<kbd>V</kbd> e aperte <kbd>Enter</kbd>:</p>
+          <div class="command" data-command-box><code data-command>irm https://astralmc.online/instalar.ps1 | iex</code><button type="button" class="btn btn-small command-copy" data-copy hidden>Copiar</button></div>
+        </div>
+        <div class="command-panel" data-os-panel="macos">
+          <h3 class="command-os">macOS</h3>
+          <p class="muted">Abra o <strong>Terminal</strong>: aperte <kbd>⌘</kbd>+<kbd>Espaço</kbd>, digite <kbd>Terminal</kbd> e aperte <kbd>Enter</kbd>. Cole o comando com <kbd>⌘</kbd>+<kbd>V</kbd> e aperte <kbd>Enter</kbd>:</p>
+          <div class="command" data-command-box><code data-command>curl -fsSL https://astralmc.online/instalar.sh | sh</code><button type="button" class="btn btn-small command-copy" data-copy hidden>Copiar</button></div>
+        </div>
+        <div class="command-panel" data-os-panel="linux">
+          <h3 class="command-os">Linux</h3>
+          <p class="muted">Abra o <strong>terminal</strong> (<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>T</kbd> na maioria das distribuições). Cole o comando com <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> e aperte <kbd>Enter</kbd>:</p>
+          <div class="command" data-command-box><code data-command>curl -fsSL https://astralmc.online/instalar.sh | sh</code><button type="button" class="btn btn-small command-copy" data-copy hidden>Copiar</button></div>
+        </div>
+      </div>
+      <p class="tiny muted" data-installer-detected></p>
       <div class="installer-next" data-installer-next hidden role="status">
-        <p class="eyebrow">Download iniciado</p>
-        <p class="muted">Abra o arquivo baixado e siga os passos abaixo. No Linux, marque o AppImage como executável nas propriedades do arquivo.</p>
+        <p class="eyebrow">Comando copiado</p>
+        <p class="muted">Cole no terminal e aperte Enter. O instalador abre na mesma janela: escolha seu launcher com as setas ou o número e aperte Enter de novo.</p>
       </div>
-      <h3 id="sistemas" class="installer-systems-title" tabindex="-1">Outros sistemas</h3>
-      <div class="installer-downloads" aria-labelledby="sistemas">
-        <a class="btn btn-ghost" href="https://github.com/dvd-iso/astral-installer/releases/download/v1.4.0/Astral-Installer-1.4.0-win-x64.exe" data-installer-download="win-x64">Windows 64 bits ↓</a>
-        <a class="btn btn-ghost" href="https://github.com/dvd-iso/astral-installer/releases/download/v1.4.0/Astral-Installer-1.4.0-mac-arm64.dmg" data-installer-download="mac-arm64">macOS · Apple Silicon ↓</a>
-        <a class="btn btn-ghost" href="https://github.com/dvd-iso/astral-installer/releases/download/v1.4.0/Astral-Installer-1.4.0-mac-x64.dmg" data-installer-download="mac-x64">macOS · Intel ↓</a>
-        <a class="btn btn-ghost" href="https://github.com/dvd-iso/astral-installer/releases/download/v1.4.0/Astral-Installer-1.4.0-linux-x86_64.AppImage" data-installer-download="linux-x86_64">Linux · x64 ↓</a>
-        <a class="btn btn-ghost" href="https://github.com/dvd-iso/astral-installer/releases/download/v1.4.0/Astral-Installer-1.4.0-linux-arm64.AppImage" data-installer-download="linux-arm64">Linux · ARM64 ↓</a>
-      </div>
-      <p class="tiny muted"><a href="https://github.com/dvd-iso/astral-installer/releases/latest" data-installer-releases target="_blank" rel="noopener">Todas as versões, pacotes .deb e código-fonte ↗</a></p>
     </section>
 
     <section class="installation-guide" aria-labelledby="stepsTitle">
       <h2 id="stepsTitle">Passo a passo</h2>
       <ol class="installation-steps">
-        <li><div><h3>Abra seu launcher uma vez</h3><p>Instale e abra o <a href="https://www.minecraft.net/download" target="_blank" rel="noopener">Minecraft Launcher ↗</a>, o <a href="https://next.skmedix.pl/downloads" target="_blank" rel="noopener">SKlauncher 4 ↗</a>, o <a href="https://prismlauncher.org/download/" target="_blank" rel="noopener">Prism Launcher ↗</a> ou o <a href="https://modrinth.com/app" target="_blank" rel="noopener">Modrinth App ↗</a>. Configure sua conta nele e depois feche o jogo e o launcher.</p></div></li>
-        <li><div><h3>Escolha seu launcher no Astral Installer</h3><p>Abra o aplicativo que você baixou, clique no cartão do seu launcher e depois em <strong>Instalar Astral</strong>. A pasta é detectada automaticamente; se necessário, use <strong>Localizar launcher</strong>. No Linux, marque o AppImage como executável nas propriedades do arquivo.</p></div></li>
-        <li><div><h3>Selecione Astral no launcher</h3><p>Ao terminar, use o botão para abrir seu launcher e selecione <strong>Astral</strong>. No oficial, habilite <strong>Modificadas</strong> se o perfil estiver oculto. No SKlauncher 4, use <strong>Instalar</strong> na instância para a primeira preparação do Minecraft e do Java. O Prism prepara os arquivos necessários ao jogar. No Modrinth App, confirme a importação do Astral; para atualizar, use <strong>Reinstalar modpack</strong> nas configurações da instância com o arquivo novo que o instalador salva em Downloads/Astral.</p></div></li>
-        <li><div><h3>Atualize pelo mesmo aplicativo</h3><p>Para receber novidades, feche o jogo e o launcher, abra o Astral Installer, escolha o mesmo launcher e clique em <strong>Buscar atualizações → Atualizar modpack</strong>. Seus mundos e preferências são preservados, e os arquivos substituídos ficam em backup.</p></div></li>
+        <li><div><h3>Abra seu launcher uma vez</h3><p>Instale e abra o <a href="https://prismlauncher.org/download/" target="_blank" rel="noopener">Prism Launcher ↗</a> (recomendado), o <a href="https://modrinth.com/app" target="_blank" rel="noopener">Modrinth App ↗</a>, o <a href="https://www.minecraft.net/download" target="_blank" rel="noopener">Minecraft Launcher ↗</a> ou o <a href="https://next.skmedix.pl/downloads" target="_blank" rel="noopener">SKlauncher 4 ↗</a> e entre na sua conta. Assim ele cria as pastas que o instalador procura.</p></div></li>
+        <li><div><h3>Cole o comando no terminal</h3><p>O instalador do Astral abre na mesma janela e mostra quais launchers encontrou. Escolha o seu e aperte <strong>Enter</strong>. Ele baixa o pack e cada mod, confere tudo e só então mexe na pasta do jogo. Outro launcher, como ATLauncher ou MultiMC? Escolha <strong>Outro launcher</strong> e importe o arquivo salvo em Downloads/Astral.</p></div></li>
+        <li><div><h3>Selecione Astral no launcher</h3><p>Abra o launcher e selecione <strong>Astral</strong>. No oficial, habilite <strong>Modificadas</strong> se o perfil estiver oculto. No SKlauncher 4, use <strong>Instalar</strong> na instância na primeira vez. No Modrinth App, confirme a importação do Astral. O Prism prepara o resto ao jogar.</p></div></li>
+        <li><div><h3>As atualizações chegam pelo jogo</h3><p>Você não precisa rodar o comando de novo. Quando sair uma versão nova, a tela de título avisa: clique em <strong>Atualizar agora</strong>, feche o jogo e abra outra vez. Seus mundos, mods que você adicionou e configurações que você mudou continuam como estão.</p></div></li>
       </ol>
+    </section>
+
+    <section class="block installer-help" id="antivirus" aria-labelledby="antivirusTitle">
+      <h2 id="antivirusTitle">O antivírus bloqueou o instalador?</h2>
+      <p class="muted">O comando não passa pelo aviso “O Windows protegeu o computador”, mas o Windows Defender ainda analisa o programa e às vezes acusa programas novos por engano. Se isso acontecer, o comando avisa. Instale pelo arquivo do modpack (abaixo) e <a href="#" data-discord hidden target="_blank" rel="noopener">avise a gente no Discord</a>: enviamos o arquivo à Microsoft, e a liberação vale para todos.</p>
+    </section>
+
+    <section class="block installer-help" id="sem-terminal" aria-labelledby="noTerminalTitle">
+      <h2 id="noTerminalTitle">Prefere não usar o terminal?</h2>
+      <p class="muted">Baixe o <a href="https://github.com/dvd-iso/astral-installer/releases" data-pack-latest>Astral.mrpack mais recente ↓</a> e importe-o no Prism (<strong>Adicionar instância → Importar</strong>) ou no Modrinth App (arraste o arquivo para a janela). As atualizações chegam pelo jogo do mesmo jeito.</p>
+    </section>
+
+    <section class="block installer-help" aria-labelledby="whyTitle">
+      <h2 id="whyTitle">Por que um comando?</h2>
+      <p class="muted">Programas baixados pelo navegador sem uma assinatura paga esbarram no aviso do Windows ou são bloqueados pelo macOS. O comando baixa o instalador direto do GitHub, confere o SHA-256 publicado e o abre no terminal. Os dois scripts são curtos e abertos: leia o <a href="instalar.ps1" target="_blank" rel="noopener">instalar.ps1</a> e o <a href="instalar.sh" target="_blank" rel="noopener">instalar.sh</a>, ou o <a href="https://github.com/dvd-iso/astral-installer" target="_blank" rel="noopener">código do instalador ↗</a>.</p>
     </section>
 
     <section class="block page-cta" aria-labelledby="readyTitle">
@@ -91,7 +116,7 @@
     <div class="footer-meta"><p><span data-name>Astral</span> · Feito de blocos. Lembrado por pessoas.</p><p class="footer-legal">Não afiliado à Mojang ou à Microsoft. · <a href="privacidade.html">Privacidade</a></p></div>
     <button class="motion-toggle" type="button" data-motion-toggle aria-pressed="false" hidden><span class="motion-icon" aria-hidden="true"></span><span data-motion-label>Pausar animações</span></button>
   </footer>
-  <script src="config.js?v=25"></script>
-  <script src="app.js?v=22"></script>
+  <script src="config.js?v=26"></script>
+  <script src="app.js?v=23"></script>
 </body>
 </html>

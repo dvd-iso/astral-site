@@ -194,7 +194,6 @@ html.play-dialog-open { overflow: hidden; }
 .play-dialog h2:focus { outline: none; }
 .play-dialog > .muted { max-width: 680px; margin: 0; font-size: 12px; }
 .installer-offer { display: grid; justify-items: start; gap: 12px; margin: 26px 0 0; }
-.installer-primary { display: inline-flex; align-items: center; gap: 14px; padding: 18px 28px; font-size: 15px; }
 .installer-offer .tiny { margin: 0; max-width: 620px; }
 .play-dialog[open] .installer-offer, .play-dialog[open] .installer-more { animation: launcher-content-enter .4s cubic-bezier(.16, 1, .3, 1) .18s both; }
 .play-dialog[open] .installer-more { animation-delay: .26s; }
@@ -205,9 +204,24 @@ html.play-dialog-open { overflow: hidden; }
 .installer-next strong { color: var(--text); }
 .installer-more { display: inline-block; margin-top: 20px; padding: 8px 0; color: var(--muted); font-size: 11px; text-decoration: underline; text-underline-offset: 4px; }
 .installer-more:hover { color: var(--text); }
-.installer-systems-title { margin: 8px 0 0; padding-top: 20px; border-top: 1px solid var(--border2); font-size: 13px; color: var(--muted); }
-.installer-systems-title:focus { outline: none; }
-.installer-downloads .btn.is-detected { border-color: var(--purple); color: var(--text); }
+.os-choice { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 18px; }
+.os-choice button { padding: 9px 16px; font: inherit; font-size: 11px; color: var(--muted); background: transparent; border: 1px solid var(--border2); cursor: pointer; }
+.os-choice button:hover { color: var(--text); }
+.os-choice button[aria-pressed="true"] { color: var(--text); border-color: var(--purple); background: rgba(139, 108, 246, .12); }
+.command-panel + .command-panel { margin-top: 24px; }
+.command-panels.has-choice .command-panel { display: none; margin-top: 0; }
+.command-panels.has-choice .command-panel.is-active { display: block; }
+.command-panels.has-choice .command-os { display: none; }
+.command-os { margin: 0 0 8px; font-size: 13px; }
+.command-panel p { margin: 0 0 12px; font-size: 12px; line-height: 1.9; }
+.command { display: flex; align-items: stretch; width: 100%; max-width: 640px; background: #050508; border: 2px solid var(--border2); border-left-color: var(--yellow); }
+.command code { flex: 1; min-width: 0; padding: 14px 16px; overflow-x: auto; font: inherit; font-size: 13px; color: var(--yellow); white-space: nowrap; user-select: all; }
+.command .command-copy { flex: none; margin: 0; }
+.command .command-copy:hover { transform: none; }
+.installer-card .tiny[data-installer-detected] { margin: 14px 0 0; }
+.installer-help h2 { margin: 0 0 12px; font-size: 17px; }
+.installer-help p { margin: 0; font-size: 12px; line-height: 1.9; }
+kbd { padding: 1px 6px; font: inherit; font-size: .92em; color: var(--text); background: var(--surface2); border: 1px solid var(--border2); }
 .launcher-official { --launcher-accent: #f2ce75; }
 .launcher-prism { --launcher-accent: #b39afa; }
 .launcher-sklauncher { --launcher-accent: #7eafff; }
@@ -293,8 +307,6 @@ html.play-dialog-open { overflow: hidden; }
 .installation-guide > h2 { font-size: 18px; margin: 0 0 20px; line-height: 1.6; }
 .installer-card h2 { font-size: 21px; margin: 0 0 16px; }
 .installer-card > .muted { font-size: 12px; }
-.installer-downloads { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-top: 16px; }
-.installer-downloads .btn { font-size: 11px; text-align: center; }
 .installation-steps { display: grid; gap: 12px; list-style: none; padding: 0; margin: 0; counter-reset: installation-step; }
 .installation-steps li { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 18px; padding: 24px; border: 1px solid var(--border2); background: var(--surface); counter-increment: installation-step; }
 .installation-steps li::before { content: counter(installation-step, decimal-leading-zero); color: var(--yellow); font-size: 21px; line-height: 1.5; }
@@ -410,8 +422,7 @@ footer { width: calc(100% - 32px); max-width: calc(var(--wrap) - 32px); margin: 
   .entry-steps { grid-template-columns: minmax(0, 1fr); gap: 8px; }
   .entry-steps li { padding: 12px 16px; }
   .modpack-invite { flex-direction: column; align-items: stretch; }
-  .installer-downloads { grid-template-columns: minmax(0, 1fr); }
-  .installer-primary { width: 100%; justify-content: center; padding: 16px 18px; font-size: 13px; }
+  .command code { padding: 12px; font-size: 11px; }
   .play-dialog { width: calc(100% - 24px); max-height: calc(100vh - 24px); max-height: calc(100dvh - 24px); padding: 28px 20px; }
   .play-dialog .eyebrow { font-size: 10px; }
   .skip-modpack { min-height: 44px; }

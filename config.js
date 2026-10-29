@@ -22,13 +22,10 @@ window.ASTRAL_CONFIG = {
     loaderVersion: "0.19.5",
   },
 
-  // Atualize estes dois valores quando publicar uma nova versão do aplicativo.
-  // Atualizações do modpack são publicadas no channel/stable.json do instalador.
+  // Instalador do modpack: os comandos de instalar.html servem instalar.sh e instalar.ps1 (cópias dos
+  // arquivos do repositório astral-installer). Atualizações do modpack saem no channel/stable.json dele.
   installer: {
-    version: "1.4.0",
-    downloadBaseUrl: "https://github.com/dvd-iso/astral-installer/releases/download/v1.4.0/",
-    releasesUrl: "https://github.com/dvd-iso/astral-installer/releases/latest",
-    // Canal lido pela página de instalação para mostrar as versões do modpack publicadas.
+    // Canal lido pela página de instalação: versões do modpack publicadas e o link do .mrpack atual.
     channelUrl: "https://raw.githubusercontent.com/dvd-iso/astral-installer/main/channel/stable.json",
   },
 

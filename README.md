@@ -22,7 +22,7 @@ Um site **estático** (HTML, CSS e JavaScript puros, sem etapa de build), public
 
 - Apresenta o mundo, a comunidade e o RPG do Astral.
 - Mostra o **status do servidor ao vivo** e o endereço para copiar.
-- Leva ao **[Astral Installer](https://github.com/dvd-iso/astral-installer)**, que prepara o modpack no launcher do jogador.
+- Mostra o comando de instalação do **[modpack](https://github.com/dvd-iso/astral-installer)**, que prepara o Astral no launcher do jogador.
 - Funciona sem JavaScript, respeita **movimento reduzido** e é responsivo.
 
 ## 📄 Páginas
@@ -33,7 +33,7 @@ Um site **estático** (HTML, CSS e JavaScript puros, sem etapa de build), public
 | Sobre | `sobre.html` | Proposta, RPG, progressão e o livro de fragmentos da lore |
 | Regras | `regras.html` | Os combinados, ilustrados em cenas 8-bit |
 | Como entrar | `jogar.html` | Endereço do servidor e login pelo nLogin |
-| Instalar | `instalar.html` | Download do Astral Installer para o sistema do visitante e passo a passo |
+| Instalar | `instalar.html` | Comando de instalação para o sistema do visitante e passo a passo |
 | Privacidade | `privacidade.html` | Política de privacidade do site, do servidor e do instalador |
 | Publicar modpack | `publicar-modpack.html` | Atalho da equipe para lançar uma versão nova do pack |
 
@@ -49,12 +49,12 @@ E abra <http://localhost:8000>.
 
 ## ⚙️ Configurar
 
-Quase tudo se ajusta em **`config.js`**: nome e endereço do servidor, versão, links do instalador e do Discord, regras e trechos da lore.
+Quase tudo se ajusta em **`config.js`**: nome e endereço do servidor, versão, canal do modpack, Discord, regras e trechos da lore.
 
 | Campo | Para |
 | --- | --- |
 | `serverName`, `serverAddress`, `serverVersion` | Nome, endereço e versão exibidos |
-| `installer` | Versão e links do Astral Installer (atualize a cada release do aplicativo) |
+| `installer` | Canal do modpack, de onde vêm as versões e o link do `.mrpack` |
 | `modpack` | Valores de reserva do modpack, caso o canal do instalador não responda |
 | `discordInviteUrl` | Convite do Discord (`""` esconde os botões) |
 | `rules`, `ruleCards` | Texto e arte de cada regra |

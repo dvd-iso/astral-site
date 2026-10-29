@@ -18,7 +18,7 @@ Site estático em HTML/CSS/JavaScript, publicado no **GitHub Pages**.
 | Sobre | `sobre.html` | proposta, RPG, progressão narrativa e comunidade |
 | Regras | `regras.html` | combinados ilustrados com cenas 8-bit |
 | Ajuda de acesso | `jogar.html` | instruções para links diretos e guias da comunidade |
-| Instalar o modpack | `instalar.html` | download do Astral Installer para o sistema do visitante e passo a passo |
+| Instalar o modpack | `instalar.html` | comando de instalação para o sistema do visitante e passo a passo |
 | Privacidade | `privacidade.html` | política de privacidade do site, do servidor e do instalador |
 
 Todas usam `style.css`, `config.js` e `app.js`. A barra superior reúne Início,
@@ -40,7 +40,7 @@ Edite `config.js`:
 | `serverAddress` | endereço do Minecraft |
 | `serverVersion` | edição e versão exibidas |
 | `modpack` | URL direta, nome do arquivo e versões do modpack, Minecraft e loader |
-| `installer` | versão do aplicativo, URL-base dos instaladores e link das releases |
+| `installer` | canal do modpack (versões e link do `.mrpack`) |
 | `discordInviteUrl` | convite da comunidade no Discord, opcional |
 | `rules` | regras da página Regras |
 | `ruleCards` | título e ID da arte de cada regra, na mesma ordem de `rules` |
@@ -67,26 +67,26 @@ e a capa de `i.ytimg.com`.
 
 ## Modpack e instalação
 
-- O site distribui o modpack somente pelo **Astral Installer**, que instala e
-  atualiza o Astral no Minecraft Launcher, no SKlauncher 4, no Prism ou no Modrinth App. Seu código,
-  builds e canal de atualização estão em [dvd-iso/astral-installer](https://github.com/dvd-iso/astral-installer).
-- `app.js` detecta o sistema pelo navegador (`navigator.userAgentData` quando
-  disponível, com a arquitetura nos navegadores Chromium) e aponta os elementos
-  `data-installer-primary` para o pacote correspondente. No Mac sem essa
-  informação, o padrão é Apple Silicon; os demais sistemas ficam em
-  `instalar.html#sistemas`, com o detectado destacado.
-- `installer.version` e `installer.downloadBaseUrl` em `config.js` correspondem
-  à release do **aplicativo**, não à versão do modpack. Ao publicar uma nova
-  versão do instalador, atualize também os links de fallback em `instalar.html`.
+- O modpack é instalado por um comando no terminal, que abre o instalador do
+  Astral: `irm https://astralmc.online/instalar.ps1 | iex` no Windows e
+  `curl -fsSL https://astralmc.online/instalar.sh | sh` no macOS e no Linux.
+  O código, os builds e o canal de atualização estão em
+  [dvd-iso/astral-installer](https://github.com/dvd-iso/astral-installer).
+- `instalar.sh` e `instalar.ps1`, na raiz do site, são **cópias** dos arquivos do
+  repositório do instalador. Ao mudar um deles lá, copie-o para cá. O CI do
+  instalador confere que a cópia do site está igual. No `.ps1`, os textos ficam
+  só em ASCII.
+- `app.js` detecta o sistema pelo navegador e mostra o comando correspondente,
+  com o botão **Copiar**, em `instalar.html` e no diálogo **Jogar**. Sem
+  JavaScript, `instalar.html` mostra os três comandos.
 - Novas versões do modpack são publicadas no repositório do instalador, anexando o
-  `.mrpack` a uma release (veja o README dele). A página de instalação lê as versões
-  do pack em `installer.channelUrl`, o canal do instalador; os valores de `modpack`
-  em `config.js` ficam como reserva se o canal não responder.
+  `.mrpack` a uma release (veja o README dele). A página de instalação lê do canal
+  (`installer.channelUrl`) as versões do pack e o link do `.mrpack` atual; os
+  valores de `modpack` em `config.js` ficam como reserva se o canal não responder.
 - `downloads/Astral.mrpack` continua sendo a cópia de distribuição do Astral 2.0.
   `modpack` em `config.js` guarda as versões de reserva da página; confira esses
   valores no `modrinth.index.json` ao substituir o pacote.
-- Sem JavaScript, Jogar leva à página de acesso e `instalar.html` mostra todos
-  os downloads do instalador.
+- Sem JavaScript, Jogar leva à página de acesso e `instalar.html` mostra os três comandos.
 - Os logotipos dos launchers ficam em `marca/launchers/`, com as fontes e os
   créditos no README desse diretório.
 - O último passo do tutorial orienta a entrar pelo botão Jogar do próprio modpack.

@@ -127,62 +127,77 @@
           if (typeof text !== "string" || !text) return;
           document.querySelectorAll(`[${attribute}]`).forEach((element) => (element.textContent = text));
         });
+        // O .mrpack atual, para quem prefere importar sem o terminal.
+        if (typeof channel.pack?.url === "string" && channel.pack.url.startsWith("https://")) {
+          document.querySelectorAll("[data-pack-latest]").forEach((link) => (link.href = channel.pack.url));
+        }
       })
       .catch(() => {});
   }
 
-  // ---------- Astral Installer: download para o sistema do visitante ----------
-  const installerPlatforms = {
-    "win-x64": "Windows",
-    "mac-arm64": "macOS · Apple Silicon",
-    "mac-x64": "macOS · Intel",
-    "linux-x86_64": "Linux · x64",
-    "linux-arm64": "Linux · ARM64",
+  // ---------- Instalador do Astral: o comando para o sistema do visitante ----------
+  // Sem JavaScript, instalar.html mostra os três comandos. Com ele, mostra o do sistema detectado e o botão Copiar.
+  const installerSystems = {
+    windows: { name: "Windows", command: "irm https://astralmc.online/instalar.ps1 | iex", paste: "Abra o PowerShell (tecla Windows, digite PowerShell), cole com Ctrl+V e aperte Enter." },
+    macos: { name: "macOS", command: "curl -fsSL https://astralmc.online/instalar.sh | sh", paste: "Abra o Terminal (⌘+Espaço, digite Terminal), cole com ⌘+V e aperte Enter." },
+    linux: { name: "Linux", command: "curl -fsSL https://astralmc.online/instalar.sh | sh", paste: "Abra o terminal, cole com Ctrl+Shift+V e aperte Enter." },
   };
-  function installerUrl(platform) {
-    const extension = platform.startsWith("win-") ? "exe" : platform.startsWith("mac-") ? "dmg" : "AppImage";
-    return `${cfg.installer.downloadBaseUrl}Astral-Installer-${cfg.installer.version}-${platform}.${extension}`;
-  }
-  // Palpite inicial pelo user agent; Safari e Firefox no Mac não informam a arquitetura, então Apple Silicon é o padrão.
-  let installerPlatform = (() => {
+  const installerDetected = (() => {
     const agent = navigator.userAgent;
     const platform = `${navigator.userAgentData?.platform || ""} ${navigator.platform || ""}`;
     if (navigator.userAgentData?.mobile || /Android|iPhone|iPad|iPod/i.test(agent) || (/Mac/i.test(platform) && navigator.maxTouchPoints > 1)) return null;
-    if (/Win/i.test(platform) || /Windows/i.test(agent)) return "win-x64";
-    if (/Mac/i.test(platform) || /Mac OS X/i.test(agent)) return "mac-arm64";
-    if (/Linux|X11|CrOS/i.test(platform + agent)) return /aarch64|arm64|armv8/i.test(platform + agent) ? "linux-arm64" : "linux-x86_64";
+    if (/Win/i.test(platform) || /Windows/i.test(agent)) return "windows";
+    if (/Mac/i.test(platform) || /Mac OS X/i.test(agent)) return "macos";
+    if (/Linux|X11|CrOS/i.test(platform + agent)) return "linux";
     return null;
   })();
-  function applyInstallerPlatform() {
-    if (!cfg.installer) return;
-    document.querySelectorAll("[data-installer-download]").forEach((link) => {
-      link.href = installerUrl(link.dataset.installerDownload);
-      link.classList.toggle("is-detected", link.dataset.installerDownload === installerPlatform);
+  let installerSystem = installerDetected || "windows";
+  function applyInstallerSystem() {
+    const system = installerSystems[installerSystem];
+    document.querySelectorAll("[data-os-choice]").forEach((group) => {
+      group.hidden = false;
+      group.querySelectorAll("[data-os]").forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.os === installerSystem)));
     });
-    document.querySelectorAll("[data-installer-primary]").forEach((link) => {
-      link.href = installerPlatform ? installerUrl(installerPlatform) : "instalar.html#sistemas";
-      link.querySelector("[data-installer-primary-label]").textContent = installerPlatform ? `Baixar para ${installerPlatforms[installerPlatform]}` : "Escolher meu sistema";
-    });
+    document.querySelectorAll("[data-command-panels]").forEach((panels) => panels.classList.add("has-choice"));
+    document.querySelectorAll("[data-os-panel]").forEach((panel) => panel.classList.toggle("is-active", panel.dataset.osPanel === installerSystem));
+    document.querySelectorAll("[data-command-for-system]").forEach((code) => (code.textContent = system.command));
+    document.querySelectorAll("[data-command-paste]").forEach((element) => (element.textContent = system.paste));
+    document.querySelectorAll("[data-copy]").forEach((button) => (button.hidden = false));
     document.querySelectorAll("[data-installer-detected]").forEach((element) => {
-      element.textContent = installerPlatform
-        ? `Astral Installer ${cfg.installer.version} · detectamos ${installerPlatforms[installerPlatform]}. Não é o seu? Veja os outros sistemas.`
-        : "O Astral é jogado no computador. Abra esta página no PC onde você joga Minecraft Java, ou escolha o sistema.";
+      element.textContent = !installerDetected
+        ? "O Astral é jogado no computador. Abra esta página no PC onde você joga Minecraft Java."
+        : installerSystem === installerDetected
+          ? `Detectamos ${system.name}. Não é o seu? Escolha o sistema acima.`
+          : `Comando para ${system.name}.`;
     });
-    document.querySelectorAll("[data-installer-releases]").forEach((link) => (link.href = cfg.installer.releasesUrl));
   }
-  applyInstallerPlatform();
-  if (installerPlatform && installerPlatform !== "win-x64" && navigator.userAgentData?.getHighEntropyValues) {
-    navigator.userAgentData.getHighEntropyValues(["architecture"]).then(({ architecture }) => {
-      const arm = architecture === "arm";
-      installerPlatform = installerPlatform.startsWith("mac-") ? (arm ? "mac-arm64" : "mac-x64") : (arm ? "linux-arm64" : "linux-x86_64");
-      applyInstallerPlatform();
-    }).catch(() => {});
-  }
-  // GitHub entrega o arquivo como anexo: a página continua aberta e mostra os próximos passos.
+  if (cfg.installer) applyInstallerSystem();
   document.addEventListener("click", (event) => {
-    const link = event.target.closest("[data-installer-primary], [data-installer-download]");
-    if (!link || !link.href.includes("/releases/download/")) return;
-    document.querySelectorAll("[data-installer-next]").forEach((element) => (element.hidden = false));
+    const choice = event.target.closest("[data-os-choice] [data-os]");
+    if (choice) {
+      installerSystem = choice.dataset.os;
+      applyInstallerSystem();
+      return;
+    }
+    const copy = event.target.closest("[data-copy]");
+    if (!copy) return;
+    const code = copy.closest("[data-command-box]").querySelector("code");
+    const done = () => {
+      copy.textContent = "Copiado ✓";
+      clearTimeout(copy.resetTimer);
+      copy.resetTimer = setTimeout(() => (copy.textContent = "Copiar"), 2500);
+      (copy.closest("dialog") || document).querySelectorAll("[data-installer-next]").forEach((element) => (element.hidden = false));
+    };
+    // Sem acesso à área de transferência, deixa o comando selecionado para Ctrl+C.
+    const select = () => {
+      const range = document.createRange();
+      range.selectNodeContents(code);
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+    };
+    if (navigator.clipboard?.writeText) navigator.clipboard.writeText(code.textContent).then(done, select);
+    else select();
   });
 
   // Botões/links para a comunidade no Discord
@@ -293,7 +308,7 @@
     });
   }
 
-  // ---------- Jogar: baixar o Astral Installer para o sistema do visitante ----------
+  // ---------- Jogar: o comando de instalação para o sistema do visitante ----------
   const playLinks = document.querySelectorAll("[data-play]");
   if (playLinks.length && typeof HTMLDialogElement !== "undefined" && "showModal" in HTMLDialogElement.prototype) {
     const dialog = document.createElement("dialog");
@@ -305,16 +320,16 @@
       <button type="button" class="dialog-close" aria-label="Fechar">×</button>
       <p class="eyebrow"><svg class="pixel-icon" aria-hidden="true" focusable="false"><use href="icons.svg#spark" /></svg>Seu próximo capítulo</p>
       <h2 id="playDialogTitle" tabindex="-1" autofocus>Você gostaria de ter<br><span class="text-accent">a experiência completa?</span></h2>
-      <p id="playDialogDescription" class="muted">Baixe o Astral Installer. Ele instala e atualiza o modpack do <span data-pack-name></span> no seu launcher, com os mods e as configurações prontos para você.</p>
+      <p id="playDialogDescription" class="muted">Cole um comando no terminal e o instalador do Astral prepara o modpack do <span data-pack-name></span> no seu launcher, com os mods e as configurações prontos para você. Depois, o próprio jogo cuida das atualizações.</p>
       <div class="installer-offer">
-        <a class="btn installer-primary" href="instalar.html#sistemas" data-installer-primary><span data-installer-primary-label>Baixar Astral Installer</span> <span aria-hidden="true">↓</span></a>
+        <div class="command" data-command-box><code data-command-for-system>irm https://astralmc.online/instalar.ps1 | iex</code><button type="button" class="btn btn-small command-copy" data-copy>Copiar</button></div>
         <p class="tiny muted" data-installer-detected></p>
       </div>
       <div class="installer-next" data-installer-next hidden>
-        <p class="eyebrow">Download iniciado</p>
+        <p class="eyebrow">Comando copiado</p>
         <ol>
-          <li>Abra o <strong>Astral Installer</strong> que você baixou.</li>
-          <li>Clique no cartão do seu launcher e depois em <strong>Instalar Astral</strong>.</li>
+          <li data-command-paste></li>
+          <li>Na janela do instalador, escolha seu launcher e aperte <strong>Enter</strong>.</li>
           <li>Abra o launcher, selecione <strong>Astral</strong> e jogue.</li>
         </ol>
       </div>
@@ -322,7 +337,7 @@
     `;
     dialog.querySelector("[data-pack-name]").textContent = cfg.serverName;
     document.body.append(dialog);
-    applyInstallerPlatform();
+    if (cfg.installer) applyInstallerSystem();
     let playTrigger;
     playLinks.forEach((link) => {
       link.setAttribute("aria-haspopup", "dialog");
