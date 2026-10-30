@@ -1,0 +1,18 @@
+{
+  // Página de publicação do modpack (link gerado por /astral update no jogo).
+  // Segredos (wrangler secret put … -c worker/wrangler.publicar.jsonc): PUBLICAR_SEGREDO e GITHUB_TOKEN.
+  "name": "astral-publicar",
+  "account_id": "87ac68789dc6936ed1a5d8e1d6ac4d20",
+  "main": "publicar.mjs",
+  "compatibility_date": "2026-10-26",
+  "workers_dev": true,
+  "preview_urls": false,
+  "observability": {"enabled": false},
+  "vars": {
+    // UUIDs que podem publicar (separados por vírgula): dvdiso.
+    "DONOS": "def0e0f3-e4d0-42cf-8ce5-7afb44fd7e97"
+  },
+  "kv_namespaces": [
+    {"binding": "USOS", "id": "d3113ce1e05d49f880cd54efda949f8c"}
+  ]
+}
