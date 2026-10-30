@@ -5,6 +5,9 @@
 // Segurança: só UUIDs da lista DONOS publicam. O link é um HMAC (segredo PUBLICAR_SEGREDO, o mesmo do arquivo
 // plugins/Astral/publicar-segredo.txt), expira e é queimado no KV USOS na primeira abertura, que vira uma sessão
 // presa a um cookie HttpOnly. O GITHUB_TOKEN nunca sai daqui e só é usado para releases de modpack.
+// Com ACCESS_EQUIPE/ACCESS_AUD definidos, toda página exige também o login do Cloudflare Access (código por e-mail)
+// de um e-mail da lista EMAILS: o Worker confere a assinatura do Access, então desligar o Access não abre a porta.
+// DISCORD_WEBHOOK (segredo) recebe um aviso a cada link aberto, tentativa de reuso, publicação e reversão.
 
 const REPO = "dvd-iso/astral-installer";
 const WORKFLOW = "modpack.yml";
@@ -57,6 +60,77 @@ export async function verificarLink(token, env, agora = Date.now()) {
   if (dados.e * 1000 < agora) return null;
   if (!donos(env).includes(dados.u.toLowerCase())) return null;
   return dados;
+}
+
+// ---------- Cloudflare Access ----------
+let chavesAccess = null;
+
+async function chaves(env, fetcher, renovar = false) {
+  if (!renovar && chavesAccess && chavesAccess.equipe === env.ACCESS_EQUIPE && Date.now() - chavesAccess.em < 3600_000) return chavesAccess.keys;
+  const r = await fetcher(`https://${env.ACCESS_EQUIPE}/cdn-cgi/access/certs`);
+  if (!r.ok) throw new Error(`certificados do Access: HTTP ${r.status}`);
+  chavesAccess = {equipe: env.ACCESS_EQUIPE, em: Date.now(), keys: (await r.json()).keys || []};
+  return chavesAccess.keys;
+}
+
+function cookieChamado(request, nome) {
+  const m = (request.headers.get("Cookie") || "").match(new RegExp(`(?:^|;\\s*)${nome}=([^;]+)`));
+  return m ? m[1] : null;
+}
+
+/** Confere o JWT do Cloudflare Access. Sem ACCESS_EQUIPE configurado, o Access ainda não está ligado e nada é exigido. */
+export async function verificarAccess(request, env, fetcher = fetch, agora = Date.now()) {
+  if (!env.ACCESS_EQUIPE) return {ok: true, email: null};
+  if (!env.ACCESS_AUD || !emails(env).length) return {ok: false};
+  const jwt = request.headers.get("Cf-Access-Jwt-Assertion") || cookieChamado(request, "CF_Authorization");
+  if (!jwt || jwt.split(".").length !== 3) return {ok: false};
+  const [h, p, assinatura] = jwt.split(".");
+  let cab, dados;
+  try {
+    cab = JSON.parse(new TextDecoder().decode(fromB64url(h)));
+    dados = JSON.parse(new TextDecoder().decode(fromB64url(p)));
+  } catch {
+    return {ok: false};
+  }
+  if (cab.alg !== "RS256") return {ok: false};
+  let jwk = (await chaves(env, fetcher)).find(k => k.kid === cab.kid);
+  if (!jwk) jwk = (await chaves(env, fetcher, true)).find(k => k.kid === cab.kid);
+  if (!jwk) return {ok: false};
+  const key = await crypto.subtle.importKey("jwk", jwk, {name: "RSASSA-PKCS1-v1_5", hash: "SHA-256"}, false, ["verify"]);
+  if (!await crypto.subtle.verify("RSASSA-PKCS1-v1_5", key, fromB64url(assinatura), enc.encode(`${h}.${p}`))) return {ok: false};
+  const aud = Array.isArray(dados.aud) ? dados.aud : [dados.aud];
+  if (dados.iss !== `https://${env.ACCESS_EQUIPE}` || !aud.includes(env.ACCESS_AUD)) return {ok: false};
+  if (typeof dados.exp !== "number" || dados.exp * 1000 < agora) return {ok: false};
+  const email = String(dados.email || "").toLowerCase();
+  return emails(env).includes(email) ? {ok: true, email} : {ok: false};
+}
+
+function emails(env) {
+  return String(env.EMAILS || "").split(",").map(s => s.trim().toLowerCase()).filter(Boolean);
+}
+
+// ---------- Avisos no Discord ----------
+function origem(request) {
+  const cf = request.cf || {};
+  const lugar = [cf.city, cf.region, cf.country].filter(Boolean).join(", ");
+  return `${request.headers.get("CF-Connecting-IP") || "IP desconhecido"}${lugar ? ` · ${lugar}` : ""}`;
+}
+
+export async function avisar(env, fetcher, titulo, linhas, cor = 0x8b6cf6) {
+  if (!env.DISCORD_WEBHOOK) return;
+  try {
+    await fetcher(env.DISCORD_WEBHOOK, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        username: "Astral · publicação do modpack",
+        allowed_mentions: {parse: []},
+        embeds: [{title: titulo.slice(0, 250), description: linhas.filter(Boolean).join("\n").slice(0, 3900), color: cor, timestamp: new Date().toISOString()}],
+      }),
+    });
+  } catch {
+    // O aviso nunca impede a publicação.
+  }
 }
 
 function cabecalhos(extra = {}) {
@@ -178,36 +252,92 @@ async function publicar(request, env, s, fetcher) {
   }
   const {id, ...resto} = s;
   await env.USOS.put(`sessao:${id}`, JSON.stringify({...resto, publicado: tag, publicadoEm: Date.now()}), {expirationTtl: SESSAO_SEGUNDOS});
+  await avisar(env, fetcher, `Publicação enviada: ${nome}`, [
+    `Por ${s.n || "?"}${s.email ? ` (${s.email})` : ""} · ${origem(request)}`,
+    `Tag ${tag} · ${(tamanho / 1048576).toFixed(1)} MB`,
+    notas ? `> ${notas.slice(0, 600).replace(/\n/g, "\n> ")}` : "",
+    "Não foi você? Use /astral update → **Voltar para a versão anterior** e troque o segredo.",
+  ], 0xf2c94c);
   return json(200, {tag, nome, release: release.html_url});
 }
 
 async function estado(url, env, fetcher) {
   const tag = url.searchParams.get("tag") || "";
   if (!/^modpack-[0-9]{8}-[0-9]{4}(?:-[0-9]{2})?$/.test(tag)) return json(400, {erro: "Tag inválida."});
+  const desfazer = url.searchParams.get("modo") === "desfazer";
   const release = await githubJson(env, `/repos/${REPO}/releases/tags/${tag}`, {}, fetcher);
-  const runs = await githubJson(env, `/repos/${REPO}/actions/workflows/${WORKFLOW}/runs?event=release&per_page=10`, {}, fetcher);
-  const desde = Date.parse(release.published_at || release.created_at) - 60_000;
-  const run = (runs.workflow_runs || []).filter(r => r.display_title === release.name && Date.parse(r.created_at) >= desde)
+  const desde = desfazer ? Number(url.searchParams.get("desde") || 0) - 60_000 : Date.parse(release.published_at || release.created_at) - 60_000;
+  const runs = await githubJson(env, `/repos/${REPO}/actions/workflows/${WORKFLOW}/runs?event=${desfazer ? "workflow_dispatch" : "release"}&per_page=10`, {}, fetcher);
+  const run = (runs.workflow_runs || []).filter(r => (desfazer || r.display_title === release.name) && Date.parse(r.created_at) >= desde)
     .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))[0];
   const canal = await canalAtual(env, fetcher);
+  const publicado = Boolean(canal && canal.url.includes(`/download/${tag}/`));
+  const falhou = Boolean(run && run.status === "completed" && run.conclusion !== "success");
+  if ((publicado || falhou) && !await env.USOS.get(`aviso:${tag}:${desfazer ? "d" : "p"}`)) {
+    await env.USOS.put(`aviso:${tag}:${desfazer ? "d" : "p"}`, "1", {expirationTtl: 30 * 86400});
+    if (publicado) await avisar(env, fetcher, desfazer ? `Versão anterior de volta: ${release.name}` : `No ar: ${release.name}`,
+      [desfazer ? "Os jogadores vão receber esta versão em \"Atualizar agora\"." : "Os jogadores já veem \"Atualizar agora\".", run ? run.html_url : ""], 0x8fbd90);
+    else await avisar(env, fetcher, `A conferência falhou: ${release.name}`, ["O canal não mudou; nada chegou aos jogadores.", run.html_url], 0xf87171);
+  }
   return json(200, {
     workflow: run ? {status: run.status, conclusao: run.conclusion, url: run.html_url} : null,
-    publicado: Boolean(canal && canal.url.includes(`/download/${tag}/`)),
+    publicado,
     canal,
   });
 }
 
+/** A release de modpack publicada no canal agora e a anterior a ela (a que "Voltar" republica). */
+async function anterior(env, fetcher) {
+  const lista = (await githubJson(env, `/repos/${REPO}/releases?per_page=40`, {}, fetcher) || [])
+    .filter(r => !r.draft && /^modpack-/.test(r.tag_name) && (r.assets || []).some(a => /\.mrpack$/i.test(a.name)))
+    .sort((a, b) => Date.parse(b.published_at || b.created_at) - Date.parse(a.published_at || a.created_at));
+  const canal = await canalAtual(env, fetcher);
+  const i = lista.findIndex(r => canal && canal.url.includes(`/download/${r.tag_name}/`));
+  const resumo = r => r ? {tag: r.tag_name, nome: r.name || r.tag_name, em: r.published_at} : null;
+  return {atual: resumo(lista[i]), anterior: i >= 0 ? resumo(lista[i + 1]) : null};
+}
+
+async function desfazer(request, env, s, fetcher) {
+  if (request.headers.get("X-Astral") !== "desfazer") return json(403, {erro: "Pedido recusado."});
+  let pedido;
+  try { pedido = await request.json(); } catch { return json(400, {erro: "Pedido inválido."}); }
+  const {atual, anterior: alvo} = await anterior(env, fetcher);
+  if (!alvo || pedido.tag !== alvo.tag) return json(409, {erro: "A versão publicada mudou. Recarregue a página."});
+  const r = await github(env, `/repos/${REPO}/actions/workflows/${WORKFLOW}/dispatches`, {
+    method: "POST", body: JSON.stringify({ref: "main", inputs: {tag: alvo.tag}}),
+  }, fetcher);
+  if (!r.ok) return json(502, {erro: `O GitHub recusou (${r.status}). O token precisa de Actions: leitura e escrita.`});
+  await avisar(env, fetcher, `Voltando para ${alvo.nome}`, [
+    `Pedido por ${s.n || "?"}${s.email ? ` (${s.email})` : ""} · ${origem(request)}`,
+    `Sai: ${atual ? atual.nome : "?"} · volta: ${alvo.nome} (${alvo.tag})`,
+  ], 0xe8a13a);
+  return json(200, {tag: alvo.tag, nome: alvo.nome, desde: Date.now()});
+}
+
 export async function handle(request, env, fetcher = fetch) {
   const url = new URL(request.url);
+  const acesso = await verificarAccess(request, env, fetcher);
+  if (!acesso.ok) {
+    if (url.searchParams.has("t")) await avisar(env, fetcher, "Link aberto sem o login do Cloudflare Access", [
+      `${origem(request)}`, "O Worker recusou. Confira se o Access continua ligado no workers.dev do astral-publicar.",
+    ], 0xf87171);
+    return pagina(403, "Acesso negado", "Esta página exige o login do Cloudflare Access com o e-mail do dono.");
+  }
   if (request.method === "GET" && url.pathname === "/") {
     const dados = await verificarLink(url.searchParams.get("t"), env);
     if (!dados) return pagina(403, "Link inválido ou expirado", "Gere outro com <strong>/astral update</strong> no jogo.");
     const usado = `link:${dados.r}`;
-    if (await env.USOS.get(usado)) return pagina(403, "Este link já foi usado",
-      "Cada link abre uma vez só. Se não foi você quem abriu, gere outro com <strong>/astral update</strong> e avise a equipe.");
+    if (await env.USOS.get(usado)) {
+      await avisar(env, fetcher, "Tentativa de reabrir um link já usado", [`${origem(request)}`, acesso.email ? `Login do Access: ${acesso.email}` : "",
+        "Se você não abriu o mesmo link duas vezes, alguém viu o seu link."], 0xf87171);
+      return pagina(403, "Este link já foi usado",
+        "Cada link abre uma vez só. Se não foi você quem abriu, gere outro com <strong>/astral update</strong> e avise a equipe.");
+    }
     await env.USOS.put(usado, "1", {expirationTtl: 86400});
     const id = b64url(crypto.getRandomValues(new Uint8Array(32)));
-    await env.USOS.put(`sessao:${id}`, JSON.stringify({u: dados.u, n: dados.n || ""}), {expirationTtl: SESSAO_SEGUNDOS});
+    await env.USOS.put(`sessao:${id}`, JSON.stringify({u: dados.u, n: dados.n || "", email: acesso.email}), {expirationTtl: SESSAO_SEGUNDOS});
+    await avisar(env, fetcher, "Link de publicação aberto", [`Por ${dados.n || "?"}${acesso.email ? ` (${acesso.email})` : ""}`, origem(request),
+      "Não foi você? A sessão dura 1 hora; troque o segredo e confira as publicações."]);
     return new Response(null, {status: 303, headers: cabecalhos({
       "Location": "/publicar",
       "Set-Cookie": `${COOKIE}=${id}; Path=/; Max-Age=${SESSAO_SEGUNDOS}; HttpOnly; Secure; SameSite=Lax`,
@@ -224,6 +354,8 @@ export async function handle(request, env, fetcher = fetch) {
     if (url.pathname === "/api/canal" && request.method === "GET") return json(200, {canal: await canalAtual(env, fetcher), publicado: s.publicado || null});
     if (url.pathname === "/api/publicar" && request.method === "POST") return await publicar(request, env, s, fetcher);
     if (url.pathname === "/api/estado" && request.method === "GET") return await estado(url, env, fetcher);
+    if (url.pathname === "/api/anterior" && request.method === "GET") return json(200, await anterior(env, fetcher));
+    if (url.pathname === "/api/desfazer" && request.method === "POST") return await desfazer(request, env, s, fetcher);
   } catch (erro) {
     return json(502, {erro: String(erro.message || erro)});
   }
@@ -274,6 +406,7 @@ const PAGINA = `<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta na
 <main>
 <p class="eyebrow">Publicar modpack</p><h1>Nova versão do Astral</h1>
 <p class="muted" id="atual">Lendo a versão publicada…</p>
+<div class="card" id="voltar" hidden><p class="muted" id="voltarTexto" style="margin:0 0 12px"></p><button id="desfazer" style="background:#0d0d16;color:#e6e3f0;outline-color:#e8a13a">Voltar para a versão anterior</button></div>
 <section id="escolher">
   <div class="card" id="zona" tabindex="0"><b>Arraste o .mrpack aqui</b><br><span class="muted">ou clique para escolher. No Prism: botão direito na instância → Exportar → Modrinth (.mrpack).</span></div>
   <input type="file" id="arquivo" accept=".mrpack" hidden>
@@ -299,7 +432,23 @@ let escolhido = null, meta = null, atual = null;
 fetch("/api/canal").then(r => r.json()).then(d => {
   atual = d.canal;
   $("atual").textContent = atual ? "Publicada agora: " + atual.nome + " · versão " + atual.versao : "Não consegui ler a versão publicada.";
-  if (d.publicado) { $("escolher").hidden = true; mostrarAndamento(); acompanhar(d.publicado); }
+  if (d.publicado) { $("escolher").hidden = true; $("voltar").dataset.off = "1"; $("voltar").hidden = true; mostrarAndamento(); acompanhar(d.publicado); }
+});
+fetch("/api/anterior").then(r => r.json()).then(d => {
+  if (!d.anterior || $("voltar").dataset.off) return;
+  $("voltarTexto").textContent = "Se a versão publicada deu problema, dá para voltar para " + d.anterior.nome + " (" + d.anterior.tag + "). Os jogadores recebem essa versão em Atualizar agora.";
+  $("voltar").hidden = false;
+  $("desfazer").onclick = async () => {
+    if (!confirm("Voltar todos os jogadores para " + d.anterior.nome + "?")) return;
+    $("desfazer").disabled = true;
+    const r = await fetch("/api/desfazer", {method: "POST", headers: {"X-Astral": "desfazer", "Content-Type": "application/json"}, body: JSON.stringify({tag: d.anterior.tag})});
+    const x = await r.json().catch(() => ({}));
+    if (!r.ok) { alert(x.erro || "Não deu para voltar (" + r.status + ")."); $("desfazer").disabled = false; return; }
+    $("escolher").hidden = true; $("voltar").hidden = true;
+    document.querySelector('[data-p="envio"]').textContent = "Pedido de volta enviado";
+    document.querySelector('[data-p="release"]').textContent = "Versão escolhida: " + x.nome;
+    mostrarAndamento(); acompanhar(x.tag, "&modo=desfazer&desde=" + x.desde);
+  };
 });
 $("zona").onclick = () => $("arquivo").click();
 $("zona").onkeydown = e => { if (e.key === "Enter" || e.key === " ") $("arquivo").click(); };
@@ -383,11 +532,11 @@ $("publicar").onclick = () => {
   xhr.send(escolhido);
 };
 
-function acompanhar(tag) {
+function acompanhar(tag, extra) {
   passo("workflow", "agora"); $("progresso").style.width = "100%";
   const vez = async () => {
     let d;
-    try { d = await (await fetch("/api/estado?tag=" + encodeURIComponent(tag))).json(); } catch { return setTimeout(vez, 8000); }
+    try { d = await (await fetch("/api/estado?tag=" + encodeURIComponent(tag) + (extra || ""))).json(); } catch { return setTimeout(vez, 8000); }
     if (d.publicado) { passo("canal", "feito"); document.querySelectorAll("#passos li").forEach(li => li.className = "feito");
       $("detalhe").textContent = "Pronto: " + d.canal.nome + " " + d.canal.versao + " está no ar."; return; }
     if (d.workflow && d.workflow.status === "completed" && d.workflow.conclusao !== "success") {

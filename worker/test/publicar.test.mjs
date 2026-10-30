@@ -123,3 +123,108 @@ test("sem o cabeçalho próprio o envio é recusado (proteção contra CSRF)", a
 test("tag no formato das anteriores, na hora de Brasília", () => {
   assert.equal(tagPara(new Date("2026-10-30T00:18:00Z")), "modpack-20261029-2118");
 });
+
+// ---------- Cloudflare Access ----------
+import {verificarAccess} from "../publicar.mjs";
+
+const EQUIPE = "astral.cloudflareaccess.com";
+const AUD = "aud-de-teste";
+const EMAIL = "3237049369557647@tutamail.com";
+
+async function chavesRsa() {
+  const par = await crypto.subtle.generateKey({name: "RSASSA-PKCS1-v1_5", modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-256"}, true, ["sign", "verify"]);
+  const publica = {...await crypto.subtle.exportKey("jwk", par.publicKey), kid: "k1"};
+  return {privada: par.privateKey, publica};
+}
+
+async function jwt(privada, dados, kid = "k1") {
+  const b = x => Buffer.from(JSON.stringify(x)).toString("base64url");
+  const corpo = `${b({alg: "RS256", kid})}.${b(dados)}`;
+  const sig = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", privada, new TextEncoder().encode(corpo));
+  return `${corpo}.${Buffer.from(new Uint8Array(sig)).toString("base64url")}`;
+}
+
+function comAccess(extra = {}) {
+  return ambiente({ACCESS_EQUIPE: EQUIPE, ACCESS_AUD: AUD, EMAILS: EMAIL, ...extra});
+}
+
+test("Access: só passa JWT assinado pela equipe, com a audiência certa, no prazo e do e-mail do dono", async () => {
+  const {privada, publica} = await chavesRsa();
+  const outra = await chavesRsa();
+  const certs = async url => {
+    assert.equal(url, `https://${EQUIPE}/cdn-cgi/access/certs`);
+    return Response.json({keys: [publica]});
+  };
+  const agora = Math.floor(Date.now() / 1000);
+  const bom = {iss: `https://${EQUIPE}`, aud: [AUD], email: EMAIL, exp: agora + 600};
+  const req = t => new Request(`${base}/`, {headers: {"Cf-Access-Jwt-Assertion": t}});
+  const env = comAccess();
+  assert.equal((await verificarAccess(req(await jwt(privada, bom)), env, certs)).email, EMAIL);
+  assert.equal((await verificarAccess(new Request(`${base}/`, {headers: {Cookie: `CF_Authorization=${await jwt(privada, bom)}`}}), env, certs)).ok, true);
+  for (const ruim of [
+    {...bom, email: "outra@pessoa.com"},
+    {...bom, aud: ["outra-aud"]},
+    {...bom, iss: "https://outra.cloudflareaccess.com"},
+    {...bom, exp: agora - 10},
+  ]) assert.equal((await verificarAccess(req(await jwt(privada, ruim)), env, certs)).ok, false, JSON.stringify(ruim));
+  assert.equal((await verificarAccess(req(await jwt(outra.privada, bom)), env, certs)).ok, false, "chave de outra equipe");
+  assert.equal((await verificarAccess(new Request(`${base}/`), env, certs)).ok, false, "sem JWT");
+  assert.equal((await verificarAccess(req(await jwt(privada, bom)), comAccess({ACCESS_AUD: ""}), certs)).ok, false, "configuração incompleta fecha a porta");
+  assert.equal((await verificarAccess(new Request(`${base}/`), ambiente(), certs)).ok, true, "Access ainda não configurado");
+});
+
+test("Access ligado: link válido sem login do Access é recusado e avisado no Discord", async () => {
+  const avisos = [];
+  const fetcher = async (url, opcoes) => {
+    if (url.endsWith("/cdn-cgi/access/certs")) return Response.json({keys: []});
+    if (url === "https://discord.example/webhook") { avisos.push(JSON.parse(opcoes.body).embeds[0].title); return new Response(null, {status: 204}); }
+    throw new Error(url);
+  };
+  const env = comAccess({DISCORD_WEBHOOK: "https://discord.example/webhook"});
+  const t = await link({u: DONO, n: "dvdiso", e: futuro(), r: "a1"});
+  const r = await handle(new Request(`${base}/?t=${t}`), env, fetcher);
+  assert.equal(r.status, 403);
+  assert.deepEqual(avisos, ["Link aberto sem o login do Cloudflare Access"]);
+  assert.equal(env.USOS.m.size, 0, "o link não foi queimado");
+});
+
+test("avisa no Discord quando o link abre e quando alguém tenta reabrir", async () => {
+  const avisos = [];
+  const fetcher = async (url, opcoes) => {
+    avisos.push(JSON.parse(opcoes.body).embeds[0]);
+    return new Response(null, {status: 204});
+  };
+  const env = ambiente({DISCORD_WEBHOOK: "https://discord.example/webhook"});
+  const t = await link({u: DONO, n: "dvdiso", e: futuro(), r: "a2"});
+  const pedido = () => new Request(`${base}/?t=${t}`, {headers: {"CF-Connecting-IP": "203.0.113.9"}});
+  await handle(pedido(), env, fetcher);
+  await handle(pedido(), env, fetcher);
+  assert.deepEqual(avisos.map(a => a.title), ["Link de publicação aberto", "Tentativa de reabrir um link já usado"]);
+  assert.match(avisos[1].description, /203\.0\.113\.9/);
+});
+
+test("voltar: republica a release anterior à do canal, e só ela", async () => {
+  const env = ambiente();
+  const t = await link({u: DONO, n: "dvdiso", e: futuro(), r: "a3"});
+  const cookie = (await handle(new Request(`${base}/?t=${t}`), env)).headers.get("Set-Cookie").split(";")[0];
+  const rel = (tag, dia) => ({tag_name: tag, name: tag, draft: false, published_at: `2026-10-${dia}T00:00:00Z`, assets: [{name: "Astral.mrpack"}]});
+  let disparo = null;
+  const fetcher = async (url, opcoes = {}) => {
+    if (url.includes("/releases?per_page")) return Response.json([rel("modpack-20261026-1322", 26), rel("modpack-20261030-1000", 30), rel("modpack-20261029-2034", 29),
+      {tag_name: "v1.4.0", name: "app", draft: false, published_at: "2026-10-25T00:00:00Z", assets: []}]);
+    if (url.includes("/contents/channel/stable.json")) return Response.json({name: "X", version: "2.6", pack: {url: "https://github.com/r/releases/download/modpack-20261030-1000/A.mrpack"}});
+    if (url.endsWith("/actions/workflows/modpack.yml/dispatches")) { disparo = JSON.parse(opcoes.body); return new Response(null, {status: 204}); }
+    throw new Error(url);
+  };
+  const ant = await (await handle(new Request(`${base}/api/anterior`, {headers: {Cookie: cookie}}), env, fetcher)).json();
+  assert.equal(ant.atual.tag, "modpack-20261030-1000");
+  assert.equal(ant.anterior.tag, "modpack-20261029-2034");
+  const pedir = tag => new Request(`${base}/api/desfazer`, {method: "POST", body: JSON.stringify({tag}), headers: {Cookie: cookie, "X-Astral": "desfazer"}});
+  assert.equal((await handle(pedir("modpack-20261026-1322"), env, fetcher)).status, 409, "só a imediatamente anterior");
+  assert.equal(disparo, null);
+  const r = await handle(pedir("modpack-20261029-2034"), env, fetcher);
+  assert.equal(r.status, 200);
+  assert.deepEqual(disparo, {ref: "main", inputs: {tag: "modpack-20261029-2034"}});
+  const sem = await handle(new Request(`${base}/api/desfazer`, {method: "POST", body: "{}", headers: {Cookie: cookie}}), env, fetcher);
+  assert.equal(sem.status, 403);
+});

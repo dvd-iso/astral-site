@@ -1,6 +1,6 @@
 {
   // Página de publicação do modpack (link gerado por /astral update no jogo).
-  // Segredos (wrangler secret put … -c worker/wrangler.publicar.jsonc): PUBLICAR_SEGREDO e GITHUB_TOKEN.
+  // Segredos (wrangler secret put … -c worker/wrangler.publicar.jsonc): PUBLICAR_SEGREDO, GITHUB_TOKEN e DISCORD_WEBHOOK.
   "name": "astral-publicar",
   "account_id": "87ac68789dc6936ed1a5d8e1d6ac4d20",
   "main": "publicar.mjs",
@@ -10,7 +10,12 @@
   "observability": {"enabled": false},
   "vars": {
     // UUIDs que podem publicar (separados por vírgula): dvdiso.
-    "DONOS": "def0e0f3-e4d0-42cf-8ce5-7afb44fd7e97"
+    "DONOS": "def0e0f3-e4d0-42cf-8ce5-7afb44fd7e97",
+    // E-mails aceitos no login do Cloudflare Access. ACCESS_EQUIPE (<equipe>.cloudflareaccess.com) e ACCESS_AUD
+    // (Audience do app do Access) ligam a exigência; sem os dois, o Worker não exige o Access.
+    "EMAILS": "3237049369557647@tutamail.com",
+    "ACCESS_EQUIPE": "rapid-morning-5c73.cloudflareaccess.com",
+    "ACCESS_AUD": "26bd324c814ae13c38f43de00c44524a04c40017b4a8ef96d155afd6b46227bf"
   },
   "kv_namespaces": [
     {"binding": "USOS", "id": "d3113ce1e05d49f880cd54efda949f8c"}
