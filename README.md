@@ -33,6 +33,7 @@ Um site **estático** (HTML, CSS e JavaScript puros, sem etapa de build), public
 | Início | `index.html` | Apresentação, vídeo, status, versão e apoio ao projeto |
 | Sobre | `sobre.html` | Proposta, RPG, progressão e o livro de fragmentos da lore |
 | Regras | `regras.html` | Os combinados, ilustrados em cenas 8-bit |
+| Mapa | `mapa/index.html` | Mapa 2D do mundo (BlueMap pelo Worker `astral-mapa`) |
 | Como entrar | `jogar.html` | Endereço do servidor e login pelo nLogin |
 | Instalar | `instalar.html` | Comando de instalação para o sistema do visitante e passo a passo |
 | Privacidade | `privacidade.html` | Política de privacidade do site, do servidor e do instalador |
