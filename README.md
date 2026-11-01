@@ -59,6 +59,7 @@ Quase tudo se ajusta em **`config.js`**: nome e endereço do servidor, versão, 
 | `installer` | Canal do modpack, de onde vêm as versões e o link do `.mrpack` |
 | `modpack` | Valores de reserva do modpack, caso o canal do instalador não responda |
 | `discordInviteUrl` | Convite do Discord (`""` esconde os botões) |
+| `instagramUrl`, `tiktokUrl` | Perfis do Astral no rodapé (`""` esconde o ícone) |
 | `rules`, `ruleCards` | Texto e arte de cada regra |
 | `lore`, `memoryFragments` | Fragmentos da história |
 

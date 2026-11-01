@@ -32,6 +32,10 @@ window.ASTRAL_CONFIG = {
   // Link de convite da comunidade no Discord (opcional, deixe "" para esconder o botão)
   discordInviteUrl: "https://discord.gg/shrznbFeM",
 
+  // Redes do Astral no rodapé (opcionais, deixe "" para esconder o ícone)
+  instagramUrl: "",
+  tiktokUrl: "",
+
   // Fragmentos da lore usados nas páginas e no livro interativo.
   // "fonte" é opcional.
   lore: [

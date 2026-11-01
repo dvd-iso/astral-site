@@ -373,6 +373,9 @@ footer { width: calc(100% - 32px); max-width: calc(var(--wrap) - 32px); margin: 
 .footer-meta .footer-legal { margin-top: 5px; color: #827c94; font-size: 9px; }
 .footer-legal a { color: inherit; }
 .footer-legal a:hover { color: var(--text, #fff); }
+.footer-social { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+.footer-social a { display: grid; place-items: center; width: 44px; height: 44px; color: var(--muted); transition: color .2s, transform .2s; }
+.footer-social a:hover { color: var(--yellow); transform: translateY(-2px); }
 .legal h3 { font-size: 13px; margin: 22px 0 10px; }
 .legal ul { margin: 0 0 14px; padding-left: 20px; line-height: 1.9; }
 .legal li { margin-bottom: 6px; }
@@ -440,6 +443,7 @@ footer { width: calc(100% - 32px); max-width: calc(var(--wrap) - 32px); margin: 
   .installation-steps li { padding: 20px 16px; grid-template-columns: 28px minmax(0, 1fr); gap: 12px; }
   .installation-steps li::before { font-size: 18px; }
   footer { flex-direction: column; text-align: center; gap: 14px; margin-top: 24px; }
+  .footer-social { margin-left: 0; }
   button, .btn { min-height: 44px; }
   .btn:not(.play-button) { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
   .reveal-ready { transition: none; }

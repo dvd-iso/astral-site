@@ -208,6 +208,15 @@
     });
   }
 
+  // Ícones das redes no rodapé
+  document.querySelectorAll("[data-social]").forEach((a) => {
+    const url = cfg[a.dataset.social];
+    if (!url) return;
+    a.href = url;
+    a.hidden = false;
+    a.parentElement.hidden = false;
+  });
+
   // ---------- Filme: carrega o player do YouTube somente ao dar play ----------
   document.querySelectorAll("[data-video-player]").forEach((player) => {
     const cover = player.querySelector(".video-cover");

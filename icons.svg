@@ -33,4 +33,11 @@
   <symbol id="spark" viewBox="0 0 16 16">
     <path d="M7 1h2v4h2v2h4v2h-4v2H9v4H7v-4H5V9H1V7h4V5h2z" />
   </symbol>
+  <symbol id="instagram" viewBox="0 0 16 16">
+    <path fill-rule="evenodd" d="M3 0h10v1h2v2h1v10h-1v2h-2v1H3v-1H1v-2H0V3h1V1h2zM3 2v1H2v10h1v1h10v-1h1V3h-1V2zM6 4h4v1h1v1h1v4h-1v1h-1v1H6v-1H5v-1H4V6h1V5h1zM6 6v4h4V6z" />
+    <path d="M11 3h2v2h-2z" />
+  </symbol>
+  <symbol id="tiktok" viewBox="0 0 16 16">
+    <path d="M8 0h3v1h1v1h1v1h2v3h-2V5h-2V4h-1v8H8zM3 8h1V7h3v2H5v1H4v3h1v1h2v-1h1v-1h2v2H9v1H8v1H4v-1H3v-1H2V9h1z" />
+  </symbol>
 </svg>
