@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'none'; frame-src https://astral-mapa.3237049369557647.workers.dev; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <meta name="theme-color" content="#050508" />
+  <title>Mapa — Astral</title>
+  <meta name="description" content="Explore o mundo do Astral em um mapa 3D ao vivo." />
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+  <style>
+    @font-face { font-family: Monocraft; src: url(../fonts/Monocraft-Bold.woff2) format("woff2"); font-display: swap; }
+    html, body { height: 100%; margin: 0; background: #050508; }
+    body { display: flex; flex-direction: column; }
+    header { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 8px 16px; border-bottom: 1px solid #1d1c2b; font: 13px/1.5 Monocraft, ui-monospace, monospace; }
+    a { color: #e6e3f0; text-decoration: none; letter-spacing: .2em; text-transform: uppercase; }
+    a + a { color: #a19cb5; letter-spacing: 0; text-transform: none; }
+    a:hover { color: #f2c94c; }
+    iframe { flex: 1; width: 100%; min-height: 0; border: 0; display: block; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="../index.html">Astral</a>
+    <a href="../index.html">← Voltar ao site</a>
+  </header>
+  <iframe src="https://astral-mapa.3237049369557647.workers.dev/" title="Mapa 3D do mundo do Astral" allow="fullscreen" referrerpolicy="no-referrer"></iframe>
+</body>
+</html>

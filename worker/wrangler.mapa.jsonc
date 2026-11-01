@@ -1,0 +1,13 @@
+{
+  // BlueMap em HTTPS para o quadro de astralmc.online/mapa. A porta é a TCP da alocação da voz (UDP 25529).
+  "name": "astral-mapa",
+  "account_id": "87ac68789dc6936ed1a5d8e1d6ac4d20",
+  "main": "mapa-proxy.mjs",
+  "compatibility_date": "2026-10-26",
+  "workers_dev": true,
+  "preview_urls": false,
+  "observability": {"enabled": false},
+  "vars": {
+    "MAPA_ORIGIN": "http://sp-13.magnohost.com.br:25529"
+  }
+}
