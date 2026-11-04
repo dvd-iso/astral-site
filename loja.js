@@ -209,7 +209,7 @@
     if (catalogoFalhou) return; // mantém a mensagem de erro
     grade.replaceChildren();
     const meus = new Set((conta?.direitos || []).filter(d => d.estado === "ativo").map(d => d.produto_id));
-    for (const p of catalogo.filter(p => p.tipo !== "apoio")) {
+    for (const p of catalogo.filter(p => p.tipo === "pet")) {
       const card = document.createElement("article");
       card.className = "feature shop-card" + (p.ativo ? "" : " is-soon");
       const foto = document.createElement("div");
