@@ -16,11 +16,11 @@
   "triggers": {"crons": ["*/10 * * * *"]},
   "vars": {
     // "teste" usa credenciais de teste; "real" só vende com LOJA_VENDAS_REAIS = "sim" E preço confirmado no banco.
-    "LOJA_MODO": "teste",
-    "LOJA_VENDAS_REAIS": "nao",
+    "LOJA_MODO": "real",
+    "LOJA_VENDAS_REAIS": "sim",
     "LOJA_PAUSADA": "nao",
-    // User ID da conta que recebe (o vendedor de teste agora; a sua conta quando for real). Conferido em cada pagamento.
-    "MP_RECEBEDOR_ID": "3816317940",
+    // User ID da conta real que recebe (desde 2026-11-04). Conferido em cada pagamento.
+    "MP_RECEBEDOR_ID": "2671018274",
     // 0 = não rejeita notificação pelo horário (o pagamento é sempre relido na API). Use 600 para limitar repetições.
     "MP_TOLERANCIA_SEGUNDOS": "0",
     // "sim" usa sandbox_init_point no modo teste. Com conta vendedora de teste, o init_point normal já é o teste.
