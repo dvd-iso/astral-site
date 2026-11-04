@@ -26,6 +26,7 @@
     <a href="index.html" class="logo" aria-label="Astral — Início"><svg class="pixel-star logo-star" aria-hidden="true"><use href="#star" /></svg><span data-name>Astral</span></a>
     <nav id="siteNavigation" aria-label="Navegação principal">
       <a href="index.html">Início</a><a href="sobre.html">Sobre</a><a href="regras.html">Regras</a><a href="mapa/">Mapa</a>
+      <a href="loja.html">Loja</a>
       <a href="index.html#apoie">Apoie</a>
       <a href="#" class="nav-mobile-community" data-discord hidden target="_blank" rel="noopener">Discord ↗</a>
     </nav>
@@ -48,12 +49,13 @@
     <section class="block legal" aria-labelledby="resumoTitle">
       <header class="block-head"><h2 id="resumoTitle">Em resumo</h2></header>
       <ul>
-        <li><strong>Site:</strong> sem cookies, sem rastreamento e sem formulários.</li>
+        <li><strong>Site:</strong> sem cookies e sem rastreamento. A loja guarda só uma sessão no seu navegador.</li>
         <li><strong>Servidor:</strong> guarda sua conta do Minecraft (UUID e nick), seu progresso e, se você vincular, sua conta do Discord.</li>
         <li><strong>Instalador e modpack:</strong> não coletam nada; tudo fica no seu computador.</li>
+        <li><strong>Loja de pets:</strong> guarda sua conta do Minecraft, seus pedidos e os pets comprados. O pagamento é feito no Mercado Pago; não vemos nem guardamos dados de cartão.</li>
         <li>Você pode pedir acesso, correção ou remoção dos seus dados a qualquer momento.</li>
       </ul>
-      <p class="muted">Esta política segue a Lei Geral de Proteção de Dados (LGPD, Lei nº 13.709/2018). Última atualização: 28 de outubro de 2026.</p>
+      <p class="muted">Esta política segue a Lei Geral de Proteção de Dados (LGPD, Lei nº 13.709/2018). Última atualização: 4 de novembro de 2026.</p>
     </section>
 
     <section class="block legal" aria-labelledby="siteTitle">
@@ -81,10 +83,27 @@
       <h3>Discord</h3>
       <p>A vinculação pede ao Discord só os escopos <code>identify</code> (ID e nome) e <code>guilds.join</code> (entrar na comunidade). Não pedimos e-mail, mensagens nem sua lista de servidores, e os tokens de autorização não são gravados.</p>
       <h3>Login</h3>
-      <p>Senhas e 2FA são tratados pelo plugin nLogin; o sistema do Astral não lê nem guarda senhas. Contas originais são verificadas pelos serviços oficiais da Mojang/Microsoft.</p>
+      <p>O Astral aceita só contas originais do Minecraft, verificadas pelos serviços oficiais da Mojang/Microsoft. O Astral não lê nem guarda senhas.</p>
       <h3>Por quanto tempo</h3>
       <p>Enquanto o servidor e seu personagem existirem, ou até você pedir a remoção. Registros de banimento podem ser mantidos para proteger a comunidade, e os logs são removidos periodicamente.</p>
-      <p class="muted">Os dados ficam no servidor do Astral e só são acessados pela equipe. Fora o Discord e a Mojang/Microsoft, nada é compartilhado, exceto por obrigação legal.</p>
+      <p class="muted">Os dados ficam no servidor do Astral e só são acessados pela equipe. Fora o Discord, a Mojang/Microsoft e, nas compras, o Mercado Pago e a Cloudflare, nada é compartilhado, exceto por obrigação legal.</p>
+    </section>
+
+    <section class="block legal" aria-labelledby="lojaTitle">
+      <header class="block-head"><h2 id="lojaTitle">Loja de pets</h2></header>
+      <p>A <a href="loja.html">loja de pets</a> funciona num serviço nosso hospedado na <strong>Cloudflare</strong> (Workers e banco D1), separado deste site. O pagamento acontece inteiro no <strong>Mercado Pago</strong>, conforme a <a href="https://www.mercadopago.com.br/privacidade" target="_blank" rel="noopener">política do Mercado Pago</a>.</p>
+      <h3>O que guardamos</h3>
+      <ul>
+        <li><strong>Conta do Minecraft:</strong> UUID e nick, para saber a quem entregar o pet.</li>
+        <li><strong>Vinculação:</strong> o nick digitado no site e a data. O código que aparece no jogo e a chave da sessão são guardados só como resumo criptográfico (hash), nunca em texto.</li>
+        <li><strong>Pedidos e pagamentos:</strong> pet comprado, valor, data, número do pagamento no Mercado Pago, forma de pagamento (Pix ou cartão), situação (aprovado, reembolsado, contestado) e o histórico de entregas ao servidor.</li>
+        <li><strong>Proteção contra abuso:</strong> um resumo criptográfico do endereço IP, com sal secreto, para limitar tentativas. O IP em si não é gravado.</li>
+      </ul>
+      <p>Não recebemos nem guardamos nome, e-mail, CPF ou dados de cartão de quem paga: isso fica só com o Mercado Pago. Para conferir cada pagamento, consultamos o Mercado Pago e guardamos apenas os campos acima.</p>
+      <h3>No seu navegador</h3>
+      <p>A página da loja guarda no <code>localStorage</code> a chave da sua sessão, para você não precisar vincular de novo, e, durante a vinculação, um identificador temporário no <code>sessionStorage</code>. O botão <strong>Sair desta conta</strong> apaga a sessão.</p>
+      <h3>Por quanto tempo</h3>
+      <p>Pedidos, pagamentos e pets são guardados enquanto o pet existir na sua conta e pelo tempo exigido por lei para registros de venda, reembolsos e contestações. Vinculações não concluídas expiram em minutos, e os registros de limite de tentativas são temporários.</p>
     </section>
 
     <section class="block legal" aria-labelledby="instaladorTitle">
