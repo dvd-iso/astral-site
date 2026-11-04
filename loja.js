@@ -22,7 +22,8 @@
     vinculo_bloqueado: "Código errado vezes demais. Comece de novo.",
     vinculo_expirado: "O pedido expirou. Comece de novo.",
     vinculo_recusado: "O pedido foi recusado dentro do jogo.",
-    ja_possui: "Você já tem este pet.",
+    ja_possui: "Você já tem este item.",
+    apoio_em_disputa: "Um apoio seu está em contestação. Espere a decisão para subir de tier.",
     vendas_reais_desativadas: "As vendas ainda não estão abertas.",
     preco_nao_confirmado: "As vendas ainda não estão abertas.",
     loja_pausada: "A loja está pausada no momento.",
@@ -61,12 +62,64 @@
 
   const reais = c => (c / 100).toLocaleString("pt-BR", {style: "currency", currency: "BRL"});
 
+  /** O maior tier de apoio ativo da conta (cada tier inclui os anteriores), ou null. */
+  function apoioAtual() {
+    const ativos = new Set((conta?.direitos || []).filter(d => d.estado === "ativo").map(d => d.produto_id));
+    return catalogo.filter(p => p.tipo === "apoio" && ativos.has(p.id)).sort((a, b) => b.preco_centavos - a.preco_centavos)[0] || null;
+  }
+
+  function desenharApoio() {
+    const grade = $("[data-apoio]");
+    if (!grade || catalogoFalhou) return;
+    grade.replaceChildren();
+    const atual = apoioAtual();
+    const temSuspenso = (conta?.direitos || []).some(d => d.estado === "suspenso" && String(d.produto_id).startsWith("apoio_"));
+    const tiers = catalogo.filter(p => p.tipo === "apoio" && p.ativo);
+    $("[data-apoio-secao]").hidden = !tiers.length;
+    for (const p of tiers) {
+      const card = document.createElement("article");
+      card.className = "feature shop-card tier-card" + (atual && atual.id === p.id ? " is-mine" : "");
+      const topo = document.createElement("div");
+      topo.className = "tier-top";
+      topo.innerHTML = '<svg class="pixel-star tier-star" aria-hidden="true"><use href="#star" /></svg>';
+      const valor = document.createElement("p");
+      valor.className = "tier-value";
+      valor.textContent = reais(p.preco_centavos);
+      topo.append(valor);
+      const h = document.createElement("h3");
+      h.textContent = p.nome;
+      const lista = document.createElement("ul");
+      lista.className = "tier-perks";
+      for (const linha of String(p.descricao).split(/\.\s+|\.$/).filter(Boolean)) {
+        const li = document.createElement("li");
+        li.textContent = linha.trim() + ".";
+        lista.append(li);
+      }
+      card.append(topo, h, lista);
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "btn";
+      const jaTem = atual ? atual.preco_centavos : 0;
+      if (atual && jaTem >= p.preco_centavos) { btn.textContent = atual.id === p.id ? "Seu tier" : "Incluído no seu"; btn.disabled = true; }
+      else if (temSuspenso) { btn.textContent = "Em análise"; btn.disabled = true; }
+      else if (!p.a_venda) { btn.textContent = "Indisponível"; btn.disabled = true; }
+      else if (!conta) { btn.textContent = "Vincule a conta"; btn.disabled = true; }
+      else {
+        btn.textContent = jaTem ? `Subir por ${reais(p.preco_centavos - jaTem)}` : "Apoiar";
+        btn.addEventListener("click", () => comprar(p.id, btn));
+      }
+      card.append(btn);
+      grade.append(card);
+    }
+  }
+
   function desenharCatalogo() {
+    desenharApoio();
     const grade = $("[data-catalog]");
     if (catalogoFalhou) return; // mantém a mensagem de erro
     grade.replaceChildren();
     const meus = new Set((conta?.direitos || []).filter(d => d.estado === "ativo").map(d => d.produto_id));
-    for (const p of catalogo) {
+    for (const p of catalogo.filter(p => p.tipo !== "apoio")) {
       const card = document.createElement("article");
       card.className = "feature shop-card" + (p.ativo ? "" : " is-soon");
       const foto = document.createElement("div");
@@ -131,9 +184,12 @@
   function mostrarConta() {
     if (conta) {
       $("[data-account-name]").textContent = conta.jogador.nome;
-      const meus = conta.direitos.filter(d => d.estado === "ativo").map(d => d.nome);
+      const ehApoio = d => String(d.produto_id).startsWith("apoio_");
+      const meus = conta.direitos.filter(d => d.estado === "ativo" && !ehApoio(d)).map(d => d.nome);
+      const tier = apoioAtual();
       const suspensos = conta.direitos.filter(d => d.estado === "suspenso").map(d => d.nome);
       $("[data-owned]").textContent = (meus.length ? `Seus pets: ${meus.join(", ")}.` : "Você ainda não tem pets.")
+        + (tier ? ` Apoio: ${tier.nome}.` : "")
         + (suspensos.length ? ` Suspensos por contestação: ${suspensos.join(", ")}.` : "");
       mostrar("conta");
     } else if (sessionStorage.getItem(CHAVE_VINCULO)) {
@@ -215,6 +271,12 @@
 
   // ---------- andamento do pedido (volta do checkout) ----------
 
+  const ESTADOS_APOIO = {
+    pago: "Pagamento confirmado! Obrigado por apoiar o Astral. O cargo chega no Discord em instantes; se o seu tier tem item ou personagem, a equipe vai falar com você por lá.",
+    em_disputa: "O pagamento está em contestação; os benefícios ficam suspensos até a decisão.",
+    reembolsado: "O pagamento foi reembolsado e os benefícios deste tier foram removidos.",
+    contestado: "O pagamento foi estornado e os benefícios deste tier foram removidos.",
+  };
   const ESTADOS = {
     criado: "Aguardando o pagamento.",
     aguardando_pagamento: "Aguardando a confirmação do Mercado Pago. Pix costuma levar segundos.",
@@ -232,14 +294,15 @@
     const caixa = $("[data-shop-order]");
     caixa.hidden = false;
     const status = $("[data-order-status]");
-    if (!localStorage.getItem(CHAVE_SESSAO)) { status.textContent = "Vincule a conta para ver o pedido. Se você pagou, o pet será liberado mesmo assim."; return; }
+    if (!localStorage.getItem(CHAVE_SESSAO)) { status.textContent = "Vincule a conta para ver o pedido. Se você pagou, tudo será liberado mesmo assim."; return; }
     try {
       const p = await api(`/api/pedidos/${id}`);
-      status.textContent = `${p.produto} · ${reais(p.valor_centavos)} — ${ESTADOS[p.estado] || p.estado}`;
+      const textos = String(p.produto_id).startsWith("apoio_") ? {...ESTADOS, ...ESTADOS_APOIO} : ESTADOS;
+      status.textContent = `${p.produto} · ${reais(p.valor_centavos)} — ${textos[p.estado] || p.estado}`;
       if (["criado", "aguardando_pagamento"].includes(p.estado) && tentativas < 40) setTimeout(() => acompanharPedido(id, tentativas + 1), 4000);
       if (p.estado === "pago") { await carregarConta(); mostrarConta(); desenharCatalogo(); }
     } catch {
-      status.textContent = "Não foi possível consultar o pedido agora. Se você pagou, o pet será liberado mesmo assim.";
+      status.textContent = "Não foi possível consultar o pedido agora. Se você pagou, tudo será liberado mesmo assim.";
     }
   }
 

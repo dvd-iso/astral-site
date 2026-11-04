@@ -505,6 +505,14 @@ html[data-motion="off"] .reveal-ready { opacity: 1; translate: none; }
 .shop-card.is-soon { opacity: .55; }
 .shop-pet { display: grid; place-items: center; margin: -8px -8px 6px; aspect-ratio: 4 / 3; background: radial-gradient(circle at 50% 58%, rgba(167, 139, 250, .22), transparent 62%); border-bottom: 2px solid var(--border); }
 .shop-pet img { width: 78%; height: 100%; object-fit: contain; transition: transform .3s; filter: drop-shadow(0 10px 8px rgba(0, 0, 0, .45)); }
+.tier-card { --accent: var(--yellow); }
+.tier-card.is-mine { border-color: var(--yellow); }
+.tier-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.tier-star { width: 34px; height: 34px; }
+.tier-card .tier-value { margin: 0; color: var(--yellow); font-size: 18px; font-weight: 700; }
+.tier-grid { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.tier-perks { margin: 0 0 14px; padding-left: 18px; color: var(--muted); font-size: 13px; }
+.tier-perks li { margin: 4px 0; }
 .shop-card:hover .shop-pet img { transform: translateY(-4px) rotate(-2deg); }
 @media (prefers-reduced-motion: reduce) { .shop-card:hover .shop-pet img { transform: none; } }
 .shop-price { margin: 6px 0 14px; color: var(--yellow); font-weight: 700; }

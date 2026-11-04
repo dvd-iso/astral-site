@@ -410,3 +410,53 @@ test("CORS só para o site; sem sessão não há conta nem pedido", async () => 
   assert.equal((await site(env, "GET", "/api/conta")).status, 401);
   assert.equal((await site(env, "POST", "/api/pedidos", {produto_id: "pet_gato"}, {Authorization: "Bearer " + "x".repeat(43)})).status, 401);
 });
+
+// ---------- apoio ----------
+
+test("apoio: tiers começam desligados, sobem pagando só a diferença e não se repetem", async () => {
+  const {env, mp} = ambiente();
+  const token = await vincular(env);
+  const auth = {Authorization: `Bearer ${token}`};
+  const pedir = id => site(env, "POST", "/api/pedidos", {produto_id: id}, auth);
+  assert.equal((await pedir("apoio_20")).dados.erro, "produto_indisponivel", "nasce inativo");
+  env.DB.sqlite.exec("UPDATE produtos SET ativo = 1 WHERE tipo = 'apoio'");
+  // A migração manteve os pets e as chaves estrangeiras.
+  assert.equal(linhas(env, "SELECT id FROM produtos WHERE tipo = 'pet'").length, 7);
+
+  const p20 = await pedir("apoio_20");
+  assert.equal(p20.status, 200);
+  const pref20 = mp.chamadas.filter(c => c.caminho === "/checkout/preferences").at(-1).corpo;
+  assert.equal(pref20.items[0].unit_price, 20);
+  assert.match(pref20.items[0].title, /Apoio/);
+  mp.pagar(2001, p20.dados.pedido_id, {transaction_amount: 20});
+  await notificar(env, 2001);
+  assert.equal(linha(env, "SELECT estado FROM direitos WHERE produto_id = 'apoio_20'").estado, "ativo");
+
+  assert.equal((await pedir("apoio_20")).dados.erro, "ja_possui");
+  const p50 = await pedir("apoio_50");
+  assert.equal(p50.status, 200);
+  assert.equal(linha(env, "SELECT valor_centavos FROM pedidos WHERE id = ?", p50.dados.pedido_id).valor_centavos, 3000, "só a diferença");
+  assert.equal(mp.chamadas.filter(c => c.caminho === "/checkout/preferences").at(-1).corpo.items[0].unit_price, 30);
+  // Pagar o valor cheio num pedido de diferença é divergência: não libera.
+  mp.pagar(2002, p50.dados.pedido_id, {transaction_amount: 50});
+  await notificar(env, 2002);
+  assert.equal(linha(env, "SELECT estado FROM pedidos WHERE id = ?", p50.dados.pedido_id).estado, "divergente");
+  mp.pagar(2003, p50.dados.pedido_id, {transaction_amount: 30});
+  await notificar(env, 2003);
+  assert.equal(linha(env, "SELECT estado FROM direitos WHERE produto_id = 'apoio_50'").estado, "ativo");
+
+  // Ter o 50 bloqueia o 20 e o 50; o 100 sai por 50.
+  assert.equal((await pedir("apoio_20")).dados.erro, "ja_possui");
+  assert.equal((await pedir("apoio_50")).dados.erro, "ja_possui");
+  const p100 = await pedir("apoio_100");
+  assert.equal(linha(env, "SELECT valor_centavos FROM pedidos WHERE id = ?", p100.dados.pedido_id).valor_centavos, 5000);
+
+  // Contestação aberta em um tier: nenhum apoio é vendido até acabar.
+  mp.pagar(2003, p50.dados.pedido_id, {transaction_amount: 30, status: "in_mediation"});
+  await notificar(env, 2003);
+  assert.equal((await pedir("apoio_100")).dados.erro, "apoio_em_disputa");
+
+  // As entregas do apoio vão para o plugin como as dos pets.
+  const e = await servidor(env, "POST", "/servidor/entregas");
+  assert.deepEqual(e.dados.entregas.map(x => `${x.produto_id}:${x.acao}`).sort(), ["apoio_20:liberar", "apoio_50:suspender"]);
+});

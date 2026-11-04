@@ -7,10 +7,10 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; frame-src 'none'; connect-src 'self' https://astral-loja.3237049369557647.workers.dev; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'" />
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <meta name="theme-color" content="#050508" />
-  <title>Loja de pets — Astral</title>
+  <title>Loja — Astral</title>
   <meta name="description" content="Pets cosméticos do Astral: companhia que segue você pelo mundo, sem vantagens no jogo." />
   <link rel="preload" href="fonts/Monocraft.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="style.css?v=26" />
+  <link rel="stylesheet" href="style.css?v=27" />
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
 </head>
 <body data-page="loja" data-page-title="Loja">
@@ -42,7 +42,7 @@
 
   <main id="conteudo" tabindex="-1">
     <header class="page-header">
-      <p class="eyebrow"><svg class="pixel-icon" aria-hidden="true" focusable="false"><use href="icons.svg#campfire" /></svg>Loja de pets</p>
+      <p class="eyebrow"><svg class="pixel-icon" aria-hidden="true" focusable="false"><use href="icons.svg#campfire" /></svg>Loja</p>
       <h1>Uma companhia<br><span class="text-accent">para a sua jornada.</span></h1>
       <p class="tagline">Pets cosméticos: seguem você pelo mundo e não dão nenhuma vantagem. Compra única, sua para sempre.</p>
     </header>
@@ -98,6 +98,13 @@
       <p class="shop-error" role="alert" data-error hidden></p>
     </section>
 
+    <section class="block" id="apoio" aria-labelledby="apoioTitle" data-apoio-secao hidden>
+      <header class="block-head"><h2 id="apoioTitle"><svg class="pixel-icon section-icon" aria-hidden="true" focusable="false"><use href="icons.svg#spark" /></svg>Apoie o Astral</h2></header>
+      <p class="muted">Pagamento único: os benefícios são seus para sempre, sem mensalidade. Cada tier inclui tudo dos anteriores, e quem já apoia paga só a diferença para subir.</p>
+      <div class="shop-grid tier-grid" data-apoio></div>
+      <p class="tiny muted">Um item sob medida e um personagem na lore por jogador. A equipe combina os detalhes com você no Discord depois do pagamento.</p>
+    </section>
+
     <section class="block" aria-labelledby="petsTitle" data-reveal>
       <header class="block-head"><h2 id="petsTitle"><svg class="pixel-icon section-icon" aria-hidden="true" focusable="false"><use href="icons.svg#spark" /></svg>Pets</h2></header>
       <p class="muted">Só um pet acompanha você por vez. No jogo, agache e clique no seu pet para trocar ou guardar.</p>
@@ -114,7 +121,8 @@
         <li><strong>Entrega automática</strong> quando o pagamento é confirmado. Se você estiver fora do jogo ou o servidor estiver desligado, o pet espera por você.</li>
         <li><strong>Arrependimento:</strong> você pode pedir o reembolso em até 7 dias depois da compra pelo Discord. Com o reembolso, o pet é removido.</li>
         <li><strong>Contestação:</strong> enquanto uma contestação do pagamento estiver aberta, o pet fica suspenso. Se for resolvida a favor do pagamento, ele volta; se o valor for estornado, o pet é removido.</li>
-        <li><strong>Apoio é outra coisa.</strong> Doações pelo Apoia.se são voluntárias e não liberam pets nem vantagens. Os pets são vendidos só aqui.</li>
+        <li><strong>Apoio:</strong> os tiers são pagamento único e os benefícios são permanentes. Cada tier inclui os anteriores; para subir, você paga só a diferença. O cargo chega sozinho no Discord da conta vinculada ao jogo; item e personagem na lore são feitos pela equipe com você, um de cada por jogador.</li>
+        <li><strong>Reembolso do apoio:</strong> no mesmo prazo de 7 dias. Com o reembolso, os benefícios daquele tier são removidos.</li>
       </ul>
     </section>
   </main>
@@ -129,6 +137,6 @@
   </footer>
   <script src="config.js?v=29"></script>
   <script src="app.js?v=24"></script>
-  <script src="loja.js?v=2"></script>
+  <script src="loja.js?v=3"></script>
 </body>
 </html>

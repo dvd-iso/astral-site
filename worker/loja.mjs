@@ -431,24 +431,29 @@ async function criarPedido(req, env, s) {
   const possui = await env.DB.prepare("SELECT estado FROM direitos WHERE uuid = ? AND produto_id = ? AND estado IN ('ativo', 'suspenso')")
     .bind(s.uuid, produtoId).first();
   if (possui) throw new Erro(409, "ja_possui");
+  const valor = produto.tipo === "apoio" ? await valorDoApoio(env, s.uuid, produto) : produto.preco_centavos;
   const t = agora();
   const modo = modoDaLoja(env);
   const aberto = await env.DB.prepare(
     `SELECT id, checkout_url FROM pedidos WHERE uuid = ? AND produto_id = ? AND estado = 'aguardando_pagamento' AND modo = ?
        AND valor_centavos = ? AND expira_em > ? AND checkout_url IS NOT NULL ORDER BY criado_em DESC LIMIT 1`)
-    .bind(s.uuid, produtoId, modo, produto.preco_centavos, t + 600).first();
+    .bind(s.uuid, produtoId, modo, valor, t + 600).first();
   if (aberto) return {pedido_id: aberto.id, checkout_url: aberto.checkout_url, reaproveitado: true};
 
   const id = crypto.randomUUID();
   await env.DB.prepare(
     `INSERT INTO pedidos (id, uuid, produto_id, valor_centavos, moeda, modo, estado, criado_em, atualizado_em, expira_em)
-     VALUES (?, ?, ?, ?, ?, ?, 'criado', ?, ?, ?)`).bind(id, s.uuid, produtoId, produto.preco_centavos, produto.moeda, modo, t, t, t + PEDIDO_SEGUNDOS).run();
+     VALUES (?, ?, ?, ?, ?, ?, 'criado', ?, ?, ?)`).bind(id, s.uuid, produtoId, valor, produto.moeda, modo, t, t, t + PEDIDO_SEGUNDOS).run();
 
   const site = String(env.SITE_URL || "https://astralmc.online").replace(/\/$/, "");
   const volta = `${site}/loja.html?pedido=${id}`;
   const preferencia = {
-    items: [{id: produto.id, title: `Astral · Pet ${produto.nome}`, description: "Pet cosmético do servidor Astral (compra única)",
-      quantity: 1, currency_id: produto.moeda, unit_price: produto.preco_centavos / 100}],
+    items: [produto.tipo === "apoio"
+      ? {id: produto.id, title: `Astral · Apoio ${produto.nome}`, description: valor < produto.preco_centavos
+          ? "Apoio ao servidor Astral (diferença para subir de tier, pagamento único)" : "Apoio ao servidor Astral (pagamento único)",
+        quantity: 1, currency_id: produto.moeda, unit_price: valor / 100}
+      : {id: produto.id, title: `Astral · Pet ${produto.nome}`, description: "Pet cosmético do servidor Astral (compra única)",
+        quantity: 1, currency_id: produto.moeda, unit_price: valor / 100}],
     external_reference: id,
     metadata: {pedido_id: id, produto_id: produto.id},
     back_urls: {success: volta, pending: volta, failure: volta},
@@ -473,6 +478,22 @@ async function criarPedido(req, env, s) {
   await env.DB.prepare("UPDATE pedidos SET estado = 'aguardando_pagamento', preferencia_id = ?, checkout_url = ?, atualizado_em = ? WHERE id = ?")
     .bind(String(pref.id), url, agora(), id).run();
   return {pedido_id: id, checkout_url: url};
+}
+
+/**
+ * Preço de um tier de apoio para este jogador: quem já tem um tier menor paga só a diferença.
+ * Cada tier inclui os anteriores, então ter um tier igual ou maior bloqueia a compra; com um apoio
+ * em contestação, nada de apoio é vendido até a disputa acabar.
+ */
+export async function valorDoApoio(env, uuid, produto) {
+  const r = await env.DB.prepare(
+    `SELECT MAX(CASE WHEN d.estado = 'ativo' THEN p.preco_centavos END) AS maior, SUM(d.estado = 'suspenso') AS suspensos
+     FROM direitos d JOIN produtos p ON p.id = d.produto_id WHERE d.uuid = ? AND p.tipo = 'apoio' AND d.estado IN ('ativo', 'suspenso')`)
+    .bind(uuid).first();
+  if (r?.suspensos > 0) throw new Erro(409, "apoio_em_disputa");
+  const maior = r?.maior || 0;
+  if (maior >= produto.preco_centavos) throw new Erro(409, "ja_possui");
+  return produto.preco_centavos - maior;
 }
 
 async function verPedido(env, s, id) {

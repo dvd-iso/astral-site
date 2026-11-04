@@ -22,7 +22,7 @@ Um site **estático** (HTML, CSS e JavaScript puros, sem etapa de build), public
 
 - Apresenta o mundo, a comunidade e o RPG do Astral.
 - Mostra o **status do servidor ao vivo** e o endereço para copiar.
-- Tem uma área para apoiar o projeto pelo **[Apoia.se](https://apoia.se/astral)**, acessível pelo menu **Apoie**.
+- Tem tiers de apoio (pagamento único pelo Mercado Pago) na loja, acessíveis pelo menu **Apoie**.
 - Mostra o comando de instalação do **[modpack](https://github.com/dvd-iso/astral-installer)**, que prepara o Astral no launcher do jogador.
 - Funciona sem JavaScript, respeita **movimento reduzido** e é responsivo.
 
