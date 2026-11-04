@@ -18,6 +18,8 @@ const UUID_JOGADOR = "def0e0f3-e4d0-42cf-8ce5-7afb44fd7e97";
 
 function mercadoPago() {
   const pagamentos = new Map();
+  const assinaturas = new Map();
+  const cobrancas = [];
   const chamadas = [];
   let falhar = false;
   const fetch = async (url, init = {}) => {
@@ -32,6 +34,26 @@ function mercadoPago() {
       const p = pagamentos.get(m[1]);
       return p ? Response.json(p) : new Response("{}", {status: 404});
     }
+    if (u.pathname === "/preapproval" && init.method === "POST") {
+      const corpo = JSON.parse(init.body);
+      const id = "pre" + (assinaturas.size + 1);
+      assinaturas.set(id, {id, status: "pending", collector_id: Number(RECEBEDOR), external_reference: corpo.external_reference, auto_recurring: corpo.auto_recurring,
+        init_point: `https://www.mercadopago.com.br/subscriptions/checkout?preapproval_id=${id}`});
+      return Response.json(assinaturas.get(id));
+    }
+    if ((m = /^\/preapproval\/(\w+)$/.exec(u.pathname))) {
+      const a = assinaturas.get(m[1]);
+      if (!a) return new Response("{}", {status: 404});
+      if (init.method === "PUT") Object.assign(a, JSON.parse(init.body));
+      return Response.json(a);
+    }
+    if (u.pathname === "/authorized_payments/search") {
+      return Response.json({results: cobrancas.filter(c => c.preapproval_id === u.searchParams.get("preapproval_id"))});
+    }
+    if ((m = /^\/authorized_payments\/(\d+)$/.exec(u.pathname))) {
+      const c = cobrancas.find(x => String(x.id) === m[1]);
+      return c ? Response.json(c) : new Response("{}", {status: 404});
+    }
     if (u.pathname === "/v1/payments/search") {
       const ref = u.searchParams.get("external_reference");
       return Response.json({results: [...pagamentos.values()].filter(p => p.external_reference === ref)});
@@ -39,7 +61,13 @@ function mercadoPago() {
     return new Response("{}", {status: 404});
   };
   return {
-    pagamentos, chamadas, fetch,
+    pagamentos, chamadas, fetch, assinaturas, cobrancas,
+    /** Um mês cobrado da assinatura: authorized_payment + pagamento com a referência da assinatura. */
+    cobrar(cobrancaId, preId, pagamentoId, extra = {}) {
+      const a = assinaturas.get(preId);
+      cobrancas.push({id: Number(cobrancaId), preapproval_id: preId, payment: {id: Number(pagamentoId), status: "approved"}, external_reference: a.external_reference});
+      return this.pagar(pagamentoId, a.external_reference, {transaction_amount: a.auto_recurring.transaction_amount, payment_type_id: "credit_card", ...extra});
+    },
     set falhar(v) { falhar = v; },
     pagar(id, pedidoId, extra = {}) {
       const p = {id: Number(id), status: "approved", status_detail: "accredited", external_reference: pedidoId, currency_id: "BRL",
@@ -461,7 +489,7 @@ test("apoio: tiers começam desligados, sobem pagando só a diferença e não se
   assert.deepEqual(e.dados.entregas.map(x => `${x.produto_id}:${x.acao}`).sort(), ["apoio_20:liberar", "apoio_50:suspender"]);
 });
 
-test("apoio: um mês depois do último apoio pago, pode apoiar de novo pelo valor cheio, sem benefício novo", async () => {
+test("apoio: um mês depois do último apoio pago, pode apoiar de novo pelo valor cheio, e isso soma", async () => {
   const {env, mp} = ambiente();
   const token = await vincular(env);
   const auth = {Authorization: `Bearer ${token}`};
@@ -488,13 +516,93 @@ test("apoio: um mês depois do último apoio pago, pode apoiar de novo pelo valo
   const de100 = await pedir("apoio_100");
   assert.equal(linha(env, "SELECT valor_centavos FROM pedidos WHERE id = ?", de100.dados.pedido_id).valor_centavos, 5000);
 
-  // Pagar o 50 de novo: nada de entrega nova (sem segundo item), registrado como apoio repetido, não como erro.
-  const entregasAntes = linhas(env, "SELECT * FROM entregas").length;
+  // Pagar o 50 de novo soma: 50 + 50 = 100 chega à Galáxia (item e personagem seguem um por jogador).
   mp.pagar(3002, de50.dados.pedido_id, {transaction_amount: 50});
   await notificar(env, 3002);
   assert.equal(linha(env, "SELECT estado FROM pedidos WHERE id = ?", de50.dados.pedido_id).estado, "pago");
-  assert.equal(linhas(env, "SELECT * FROM entregas").length, entregasAntes);
-  assert.match(linha(env, "SELECT detalhe FROM eventos_pagamento WHERE pagamento_id = '3002'").detalhe, /apoio_repetido/);
+  assert.equal(linha(env, "SELECT estado FROM direitos WHERE produto_id = 'apoio_100'").estado, "ativo");
   // E o relógio recomeça: agora precisa esperar outro mês.
   assert.equal((await pedir("apoio_20")).dados.erro, "apoio_recente");
+});
+
+test("apoio mensal: assinatura no cartão, cada mês soma para o tier, reembolso tira, cancelamento pelo site", async () => {
+  const {env, mp} = ambiente();
+  const token = await vincular(env);
+  const auth = {Authorization: `Bearer ${token}`};
+  env.DB.sqlite.exec("UPDATE produtos SET ativo = 1 WHERE tipo IN ('apoio', 'apoio_mensal')");
+  assert.equal((await site(env, "POST", "/api/assinaturas", {produto_id: "apoio_mensal_20", email: "sem-arroba"}, auth)).dados.erro, "email_invalido");
+  const nova = await site(env, "POST", "/api/assinaturas", {produto_id: "apoio_mensal_20", email: "fulano@example.com"}, auth);
+  assert.equal(nova.status, 200, JSON.stringify(nova.dados));
+  assert.match(nova.dados.checkout_url, /^https:\/\/www\.mercadopago\.com\.br\/subscriptions/);
+  const pre = mp.chamadas.find(c => c.caminho === "/preapproval").corpo;
+  assert.equal(pre.auto_recurring.transaction_amount, 20);
+  assert.equal(pre.external_reference, `assinatura:${nova.dados.assinatura_id}`);
+  assert.equal(linhas(env, "SELECT * FROM assinaturas WHERE preapproval_id = 'pre1'").length, 1);
+  assert.ok(!JSON.stringify(linhas(env, "SELECT * FROM assinaturas")).includes("fulano"), "o e-mail não é gravado");
+
+  // Autorizada no checkout.
+  mp.assinaturas.get("pre1").status = "authorized";
+  const n1 = await notificar(env, "pre1", {tipo: "subscription_preapproval"});
+  assert.equal(n1.status, 200);
+  assert.equal(linha(env, "SELECT estado FROM assinaturas").estado, "autorizada");
+  assert.equal((await site(env, "POST", "/api/assinaturas", {produto_id: "apoio_mensal_50", email: "fulano@example.com"}, auth)).dados.erro, "ja_assina");
+
+  // Mês 1 pela notificação da cobrança: Estrela.
+  mp.cobrar(7001, "pre1", 8001);
+  await notificar(env, 7001, {tipo: "subscription_authorized_payment"});
+  assert.equal(linha(env, "SELECT estado FROM direitos WHERE produto_id = 'apoio_20'").estado, "ativo");
+  // A notificação do pagamento em si (mesmo pagamento) não duplica.
+  await notificar(env, 8001);
+  assert.equal(linhas(env, "SELECT * FROM cobrancas").length, 1);
+
+  // Meses 2 e 3 sem notificação nenhuma: a conciliação acha pela busca de cobranças.
+  mp.cobrar(7002, "pre1", 8002);
+  mp.cobrar(7003, "pre1", 8003);
+  env.DB.sqlite.exec("UPDATE assinaturas SET conferido_em = 1");
+  await tarefas(env);
+  assert.equal(linhas(env, "SELECT * FROM cobrancas").length, 3);
+  assert.equal(linha(env, "SELECT estado FROM direitos WHERE produto_id = 'apoio_50'").estado, "ativo", "R$ 60 somados: Constelação");
+  const c = await site(env, "GET", "/api/conta", undefined, auth);
+  assert.equal(c.dados.apoio_total, 6000);
+  assert.equal(c.dados.assinatura.estado, "autorizada");
+  // Avulso para a Galáxia cobra só o que falta: 100 − 60.
+  const falta = await site(env, "POST", "/api/pedidos", {produto_id: "apoio_100"}, auth);
+  assert.equal(linha(env, "SELECT valor_centavos FROM pedidos WHERE id = ?", falta.dados.pedido_id).valor_centavos, 4000);
+
+  // Cobrança de valor diferente do combinado não soma.
+  mp.cobrar(7004, "pre1", 8004, {transaction_amount: 5});
+  await notificar(env, 7004, {tipo: "subscription_authorized_payment"});
+  assert.equal(linha(env, "SELECT p.estado FROM pedidos p JOIN cobrancas c ON c.pedido_id = p.id WHERE c.pagamento_id = '8004'").estado, "divergente");
+
+  // Reembolso do mês 3: soma cai para 40, Constelação sai, Estrela fica.
+  mp.pagamentos.get("8003").status = "refunded";
+  await notificar(env, 8003);
+  assert.equal(linha(env, "SELECT estado FROM direitos WHERE produto_id = 'apoio_50'").estado, "revogado");
+  assert.equal(linha(env, "SELECT estado FROM direitos WHERE produto_id = 'apoio_20'").estado, "ativo");
+
+  // Cancelar pelo site cancela no Mercado Pago. O tier alcançado fica.
+  const cancelar = await site(env, "POST", `/api/assinaturas/${nova.dados.assinatura_id}/cancelar`, {}, auth);
+  assert.equal(cancelar.status, 200);
+  assert.equal(mp.assinaturas.get("pre1").status, "cancelled");
+  assert.equal(linha(env, "SELECT estado FROM direitos WHERE produto_id = 'apoio_20'").estado, "ativo");
+});
+
+test("mural: mostra o nick e o maior tier, do maior para o menor; o jogador pode se esconder", async () => {
+  const {env, mp} = ambiente();
+  env.DB.sqlite.exec("UPDATE produtos SET ativo = 1 WHERE tipo = 'apoio'");
+  const pagar = async (token, produto, pid, valor) => {
+    const p = await site(env, "POST", "/api/pedidos", {produto_id: produto}, {Authorization: `Bearer ${token}`});
+    mp.pagar(pid, p.dados.pedido_id, {transaction_amount: valor});
+    await notificar(env, pid);
+  };
+  const a = await vincular(env, "dvdiso", UUID_JOGADOR);
+  const b = await vincular(env, "Fulano_", "11111111-2222-4333-8444-555555555555");
+  await pagar(a, "apoio_20", 9001, 20);
+  await pagar(b, "apoio_100", 9002, 100);
+  const m = await site(env, "GET", "/api/apoiadores");
+  assert.deepEqual(m.dados.apoiadores, [{nome: "Fulano_", tier: "Galáxia"}, {nome: "dvdiso", tier: "Estrela"}]);
+  assert.match(m.headers.get("Cache-Control"), /max-age/);
+  assert.equal((await site(env, "POST", "/api/mural", {visivel: false}, {Authorization: `Bearer ${b}`})).status, 200);
+  assert.deepEqual((await site(env, "GET", "/api/apoiadores")).dados.apoiadores, [{nome: "dvdiso", tier: "Estrela"}]);
+  assert.equal((await site(env, "GET", "/api/conta", undefined, {Authorization: `Bearer ${b}`})).dados.mural_visivel, false);
 });

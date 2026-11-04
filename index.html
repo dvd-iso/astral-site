@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; frame-src https://www.youtube-nocookie.com; connect-src 'self' https://api.mcsrvstat.us; img-src 'self' data: https://i.ytimg.com; style-src 'self' 'unsafe-inline'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; frame-src https://www.youtube-nocookie.com; connect-src 'self' https://api.mcsrvstat.us https://astral-loja.3237049369557647.workers.dev; img-src 'self' data: https://i.ytimg.com; style-src 'self' 'unsafe-inline'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'" />
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <meta name="theme-color" content="#050508" />
   <title>Início — Astral</title>
   <meta name="description" content="Astral: sobrevivência com base vanilla, foco social e RPG. Explore um mundo com lore própria e construa histórias e memórias em comunidade." />
   <link rel="preload" href="fonts/Monocraft.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="style.css?v=24" />
+  <link rel="stylesheet" href="style.css?v=28" />
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
 </head>
 <body data-page="inicio" data-page-title="Início">
@@ -93,12 +93,18 @@
       <div class="support-copy">
         <p class="eyebrow"><svg class="pixel-icon" aria-hidden="true" focusable="false"><use href="icons.svg#spark" /></svg>Feito em comunidade</p>
         <h2 id="supportTitle">Ajude o Astral a continuar criando memórias.</h2>
-        <p>Seu apoio mantém o servidor no ar e ajuda a desenvolver o projeto. São três tiers, de R$ 20, R$ 50 e R$ 100, com pagamento único: cargo e ícone de apoiador, um item sob medida na lore e até um personagem seu na história do Astral.</p>
+        <p>Seu apoio mantém o servidor no ar e ajuda a desenvolver o projeto. São três tiers, de R$ 20, R$ 50 e R$ 100: cargo e ícone de apoiador, um item sob medida na lore e até um personagem seu na história do Astral. Apoie de uma vez ou todo mês: tudo soma para o tier.</p>
       </div>
       <div class="support-action">
         <a class="btn support-button" href="loja.html#apoio">Ver os tiers de apoio</a>
-        <p class="support-note">Pix ou cartão pelo Mercado Pago. Os benefícios são seus para sempre.</p>
+        <p class="support-note">Pix ou cartão pelo Mercado Pago. O tier alcançado é seu para sempre.</p>
       </div>
+    </section>
+
+    <section class="block supporters" id="apoiadores" aria-labelledby="supportersTitle" data-supporters hidden>
+      <header class="block-head"><h2 id="supportersTitle"><svg class="pixel-icon section-icon" aria-hidden="true" focusable="false"><use href="icons.svg#spark" /></svg>Apoiadores</h2></header>
+      <p class="muted">Quem ajuda o Astral a continuar existindo. Obrigado!</p>
+      <div class="supporters-tiers" data-supporters-list></div>
     </section>
   </main>
 
@@ -112,6 +118,7 @@
   </footer>
 
   <script src="config.js?v=28"></script>
+  <script src="mural.js?v=1" defer></script>
   <script src="app.js?v=24"></script>
 </body>
 </html>

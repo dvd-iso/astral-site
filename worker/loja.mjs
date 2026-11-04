@@ -184,7 +184,7 @@ async function sessao(req, env) {
  * - suspenso/revogado: só se o direito veio deste pedido (um reembolso antigo não derruba uma compra nova).
  * Repetir a chamada não muda nada: a versão só cresce quando o estado muda, e a entrega é UNIQUE por versão.
  */
-export async function aplicarDireito(env, {uuid, produtoId, pedidoId, estado, motivo}) {
+export async function aplicarDireito(env, {uuid, produtoId, pedidoId, estado, motivo, forcar = false}) {
   const t = agora();
   const antes = await env.DB.prepare("SELECT versao, estado FROM direitos WHERE uuid = ? AND produto_id = ?").bind(uuid, produtoId).first();
   const mudar = estado === "ativo"
@@ -193,12 +193,12 @@ export async function aplicarDireito(env, {uuid, produtoId, pedidoId, estado, mo
        VALUES (?1, ?2, ?3, 'ativo', ?4, 1, ?5, ?6, ?6)
        ON CONFLICT (uuid, produto_id) DO UPDATE SET estado = 'ativo', pedido_id = excluded.pedido_id,
          versao = direitos.versao + 1, motivo = excluded.motivo, atualizado_em = excluded.atualizado_em
-       WHERE direitos.estado = 'revogado' OR (direitos.estado = 'suspenso' AND direitos.pedido_id = excluded.pedido_id)`)
-      .bind(crypto.randomUUID(), uuid, produtoId, pedidoId, motivo, t)
+       WHERE direitos.estado = 'revogado' OR (direitos.estado = 'suspenso' AND (direitos.pedido_id = excluded.pedido_id OR ?7 = 1))`)
+      .bind(crypto.randomUUID(), uuid, produtoId, pedidoId, motivo, t, forcar ? 1 : 0)
     : env.DB.prepare(
       `UPDATE direitos SET estado = ?1, versao = versao + 1, motivo = ?2, atualizado_em = ?3
-       WHERE uuid = ?4 AND produto_id = ?5 AND pedido_id = ?6 AND estado <> ?1`)
-      .bind(estado, motivo, t, uuid, produtoId, pedidoId);
+       WHERE uuid = ?4 AND produto_id = ?5 AND (pedido_id = ?6 OR ?7 = 1) AND estado <> ?1`)
+      .bind(estado, motivo, t, uuid, produtoId, pedidoId, forcar ? 1 : 0);
   await env.DB.batch([
     mudar,
     env.DB.prepare(
@@ -219,6 +219,191 @@ export async function aplicarDireito(env, {uuid, produtoId, pedidoId, estado, mo
   return {mudou: !!depois && (!antes || antes.versao !== depois.versao), estado: depois?.estado ?? null};
 }
 
+// ---------- apoio ----------
+
+const TIPOS_APOIO = "('apoio', 'apoio_mensal')";
+
+/** Soma (centavos) dos apoios do jogador: pagos e em disputa. Reembolsos parciais descontam. */
+export async function somaDoApoio(env, uuid) {
+  const r = await env.DB.prepare(
+    `SELECT
+       COALESCE(SUM(CASE WHEN pe.estado = 'pago' THEN pe.valor_centavos - COALESCE(pg.reembolsado_centavos, 0) END), 0) AS pago,
+       COALESCE(SUM(CASE WHEN pe.estado = 'em_disputa' THEN pe.valor_centavos END), 0) AS disputa,
+       MAX(CASE WHEN pe.estado = 'pago' THEN pe.criado_em END) AS ultimo
+     FROM pedidos pe JOIN produtos p ON p.id = pe.produto_id LEFT JOIN pagamentos pg ON pg.id = pe.pagamento_id
+     WHERE pe.uuid = ? AND p.tipo IN ${TIPOS_APOIO}`).bind(uuid).first();
+  return {pago: r?.pago || 0, disputa: r?.disputa || 0, ultimo: r?.ultimo || null};
+}
+
+/**
+ * O tier é o maior cujo valor cabe na soma do que foi apoiado: ativo se cabe no que está pago,
+ * suspenso se só cabe contando o que está em contestação, revogado se nem assim (o dinheiro voltou).
+ * Todo tier de valor menor também fica ativo: cada um inclui os anteriores.
+ */
+export async function recalcularApoio(env, uuid, pedidoId, motivo) {
+  const {pago, disputa} = await somaDoApoio(env, uuid);
+  const {results: tiers} = await env.DB.prepare("SELECT id, preco_centavos FROM produtos WHERE tipo = 'apoio' ORDER BY preco_centavos").all();
+  const mudancas = [];
+  for (const tier of tiers) {
+    const atual = await env.DB.prepare("SELECT estado FROM direitos WHERE uuid = ? AND produto_id = ?").bind(uuid, tier.id).first();
+    const estado = tier.preco_centavos <= pago ? "ativo" : tier.preco_centavos <= pago + disputa ? "suspenso" : "revogado";
+    if (estado === (atual?.estado ?? "revogado")) continue;
+    if (!atual && estado !== "ativo") continue;
+    const r = await aplicarDireito(env, {uuid, produtoId: tier.id, pedidoId, estado, motivo, forcar: true});
+    if (r.mudou) mudancas.push(`${tier.id}:${r.estado}`);
+  }
+  return mudancas;
+}
+
+// ---------- apoio mensal (Assinaturas do Mercado Pago) ----------
+
+const ESTADO_DA_ASSINATURA = {pending: "pendente", authorized: "autorizada", paused: "pausada", cancelled: "cancelada"};
+
+/** O pedido que representa uma cobrança mensal; cria na primeira vez que o pagamento aparece. */
+async function pedidoDaCobranca(env, assinatura, pagamentoId, pedidoId) {
+  if (!pedidoId) {
+    const t = agora();
+    const novo = crypto.randomUUID();
+    await env.DB.batch([
+      env.DB.prepare(
+        `INSERT INTO pedidos (id, uuid, produto_id, valor_centavos, moeda, modo, estado, criado_em, atualizado_em, expira_em)
+         SELECT ?1, ?2, ?3, ?4, 'BRL', ?5, 'criado', ?6, ?6, ?7 WHERE NOT EXISTS (SELECT 1 FROM cobrancas WHERE pagamento_id = ?8)`)
+        .bind(novo, assinatura.uuid, assinatura.produto_id, assinatura.valor_centavos, assinatura.modo, t, t + PEDIDO_SEGUNDOS, pagamentoId),
+      env.DB.prepare(
+        `INSERT OR IGNORE INTO cobrancas (pagamento_id, assinatura_id, pedido_id, criado_em)
+         SELECT ?1, ?2, ?3, ?4 WHERE EXISTS (SELECT 1 FROM pedidos WHERE id = ?3)`).bind(pagamentoId, assinatura.id, novo, t),
+    ]);
+    pedidoId = (await env.DB.prepare("SELECT pedido_id FROM cobrancas WHERE pagamento_id = ?").bind(pagamentoId).first())?.pedido_id;
+  }
+  return pedidoId ? env.DB.prepare("SELECT * FROM pedidos WHERE id = ?").bind(pedidoId).first() : null;
+}
+
+/** Lê a assinatura no Mercado Pago e atualiza o estado; depois confere as cobranças dela. Idempotente. */
+export async function sincronizarAssinatura(env, preapprovalId, origem) {
+  const a = await env.DB.prepare("SELECT * FROM assinaturas WHERE preapproval_id = ?").bind(preapprovalId).first();
+  if (!a) return {resultado: "assinatura_desconhecida"};
+  const r = await mp(env, "GET", `/preapproval/${encodeURIComponent(preapprovalId)}`);
+  if (!r.ok) throw new Erro(502, "mercado_pago_indisponivel", {status: r.status});
+  const pre = await r.json();
+  const t = agora();
+  if (String(pre.collector_id ?? env.MP_RECEBEDOR_ID) !== String(env.MP_RECEBEDOR_ID) || String(pre.external_reference ?? "") !== `assinatura:${a.id}`) {
+    await registrarEvento(env, {origem, status: pre.status, detalhe: `assinatura_divergente:${a.id}`});
+    return {resultado: "divergente"};
+  }
+  const estado = ESTADO_DA_ASSINATURA[pre.status] ?? a.estado;
+  await env.DB.prepare("UPDATE assinaturas SET estado = ?, atualizado_em = ?, conferido_em = ? WHERE id = ?").bind(estado, t, t, a.id).run();
+  if (estado !== a.estado) await registrarEvento(env, {origem, status: pre.status, detalhe: `assinatura:${a.id}:${a.estado}->${estado}`});
+  return {resultado: "processado", estado, cobrancas: await conferirCobrancas(env, {...a, estado}, origem)};
+}
+
+/** Busca as cobranças da assinatura e processa cada pagamento (recupera notificações perdidas). */
+async function conferirCobrancas(env, a, origem) {
+  const r = await mp(env, "GET", `/authorized_payments/search?preapproval_id=${encodeURIComponent(a.preapproval_id)}&limit=50`);
+  if (!r.ok) return 0;
+  const {results = []} = await r.json();
+  let n = 0;
+  for (const c of results) {
+    const pid = c?.payment?.id;
+    if (!pid || String(c.preapproval_id ?? "") !== a.preapproval_id) continue;
+    await pedidoDaCobranca(env, a, String(pid), (await env.DB.prepare("SELECT pedido_id FROM cobrancas WHERE pagamento_id = ?").bind(String(pid)).first())?.pedido_id);
+    await sincronizarPagamento(env, String(pid), origem);
+    n++;
+  }
+  return n;
+}
+
+/** Notificação de uma cobrança (authorized_payment): liga o pagamento à assinatura e processa. */
+async function sincronizarCobranca(env, cobrancaId, origem) {
+  const r = await mp(env, "GET", `/authorized_payments/${encodeURIComponent(cobrancaId)}`);
+  if (r.status === 404) return {resultado: "nao_encontrado"};
+  if (!r.ok) throw new Erro(502, "mercado_pago_indisponivel", {status: r.status});
+  const c = await r.json();
+  const a = c.preapproval_id ? await env.DB.prepare("SELECT * FROM assinaturas WHERE preapproval_id = ?").bind(String(c.preapproval_id)).first() : null;
+  if (!a) return {resultado: "assinatura_desconhecida"};
+  const pid = c?.payment?.id;
+  if (!pid) return {resultado: "sem_pagamento_ainda"};
+  await pedidoDaCobranca(env, a, String(pid), (await env.DB.prepare("SELECT pedido_id FROM cobrancas WHERE pagamento_id = ?").bind(String(pid)).first())?.pedido_id);
+  return sincronizarPagamento(env, String(pid), origem);
+}
+
+const EMAIL_RE = /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,24}$/;
+
+async function criarAssinatura(req, env, s) {
+  const {produto_id: produtoId, email} = lerJson(await lerCorpo(req));
+  if (typeof produtoId !== "string") throw new Erro(400, "produto_invalido");
+  if (typeof email !== "string" || email.length > 254 || !EMAIL_RE.test(email.trim())) throw new Erro(400, "email_invalido");
+  await limitar(env, `assinatura:${s.uuid}`, 6, 3600);
+  const produto = await env.DB.prepare("SELECT * FROM produtos WHERE id = ? AND tipo = 'apoio_mensal'").bind(produtoId).first();
+  const bloqueio = bloqueioDeVenda(env, produto);
+  if (bloqueio) throw new Erro(produto ? 403 : 404, bloqueio);
+  const t = agora();
+  const viva = await env.DB.prepare("SELECT id, estado, checkout_url, produto_id FROM assinaturas WHERE uuid = ? AND estado IN ('criada', 'pendente', 'autorizada', 'pausada') ORDER BY criado_em DESC LIMIT 1").bind(s.uuid).first();
+  if (viva && viva.estado !== "pendente") throw new Erro(409, "ja_assina");
+  if (viva) await env.DB.prepare("UPDATE assinaturas SET estado = 'cancelada', atualizado_em = ? WHERE id = ?").bind(t, viva.id).run(); // troca a pendente
+
+  const id = crypto.randomUUID();
+  const modo = modoDaLoja(env);
+  await env.DB.prepare(
+    `INSERT INTO assinaturas (id, uuid, produto_id, valor_centavos, modo, estado, criado_em, atualizado_em) VALUES (?, ?, ?, ?, ?, 'criada', ?, ?)`)
+    .bind(id, s.uuid, produto.id, produto.preco_centavos, modo, t, t).run();
+  const site = String(env.SITE_URL || "https://astralmc.online").replace(/\/$/, "");
+  const r = await mp(env, "POST", "/preapproval", {
+    reason: `Astral · ${produto.nome}`,
+    external_reference: `assinatura:${id}`,
+    payer_email: email.trim(),
+    auto_recurring: {frequency: 1, frequency_type: "months", transaction_amount: produto.preco_centavos / 100, currency_id: produto.moeda},
+    back_url: `${site}/loja.html?assinatura=${id}`,
+    status: "pending",
+  }, `assinatura-${id}`);
+  if (!r.ok) {
+    await env.DB.prepare("UPDATE assinaturas SET estado = 'cancelada', atualizado_em = ? WHERE id = ?").bind(agora(), id).run();
+    let motivo = ""; try { motivo = String((await r.json()).message || "").slice(0, 120); } catch { /* sem corpo */ }
+    await registrarEvento(env, {origem: "assinatura", detalhe: `preapproval_falhou:${r.status}:${motivo}`});
+    throw new Erro(502, "assinatura_indisponivel");
+  }
+  const pre = await r.json();
+  const url = pre.init_point;
+  if (!pre.id || !url || !/^https:\/\/([a-z0-9-]+\.)*mercadopago\.com(\.br)?\//.test(url)) throw new Erro(502, "assinatura_indisponivel");
+  await env.DB.prepare("UPDATE assinaturas SET estado = 'pendente', preapproval_id = ?, checkout_url = ?, atualizado_em = ? WHERE id = ?")
+    .bind(String(pre.id), url, agora(), id).run();
+  return {assinatura_id: id, checkout_url: url};
+}
+
+async function cancelarAssinatura(env, s, id) {
+  const a = await env.DB.prepare("SELECT * FROM assinaturas WHERE id = ? AND uuid = ?").bind(id, s.uuid).first();
+  if (!a) throw new Erro(404, "assinatura_nao_encontrada");
+  if (a.estado === "cancelada") return {ok: true, estado: "cancelada"};
+  if (a.preapproval_id) {
+    const r = await mp(env, "PUT", `/preapproval/${encodeURIComponent(a.preapproval_id)}`, {status: "cancelled"});
+    if (!r.ok) throw new Erro(502, "mercado_pago_indisponivel", {status: r.status});
+  }
+  await env.DB.prepare("UPDATE assinaturas SET estado = 'cancelada', atualizado_em = ? WHERE id = ?").bind(agora(), id).run();
+  await registrarEvento(env, {origem: "site", detalhe: `assinatura:${id}:cancelada_pelo_jogador`});
+  return {ok: true, estado: "cancelada"};
+}
+
+// ---------- mural de apoiadores ----------
+
+async function mural(env) {
+  const {results} = await env.DB.prepare(
+    `SELECT j.nome, p.nome AS tier, MAX(p.preco_centavos) AS nivel, MIN(d.criado_em) AS desde
+     FROM direitos d JOIN produtos p ON p.id = d.produto_id JOIN jogadores j ON j.uuid = d.uuid
+     LEFT JOIN mural m ON m.uuid = d.uuid
+     WHERE p.tipo = 'apoio' AND d.estado = 'ativo' AND COALESCE(m.visivel, 1) = 1
+     GROUP BY d.uuid ORDER BY nivel DESC, desde ASC LIMIT 200`).all();
+  // O nome do tier vem do maior tier (MAX no SQLite devolve as outras colunas da mesma linha).
+  return {apoiadores: results.map(r => ({nome: r.nome, tier: r.tier}))};
+}
+
+async function mudarMural(req, env, s) {
+  const {visivel} = lerJson(await lerCorpo(req));
+  if (typeof visivel !== "boolean") throw new Erro(400, "valor_invalido");
+  await env.DB.prepare(
+    `INSERT INTO mural (uuid, visivel, atualizado_em) VALUES (?1, ?2, ?3)
+     ON CONFLICT (uuid) DO UPDATE SET visivel = excluded.visivel, atualizado_em = excluded.atualizado_em`).bind(s.uuid, visivel ? 1 : 0, agora()).run();
+  return {ok: true, visivel};
+}
+
 // ---------- Mercado Pago ----------
 
 async function mp(env, metodo, caminho, corpo, idempotencia) {
@@ -229,10 +414,12 @@ async function mp(env, metodo, caminho, corpo, idempotencia) {
 }
 
 /** Conferência do pagamento lido na API contra o pedido. Lista vazia = pode liberar. */
-export function conferirPagamento(pagamento, pedido, env) {
+export function conferirPagamento(pagamento, pedido, env, assinatura = null) {
   const problemas = [];
+  const ref = String(pagamento.external_reference ?? "");
   if (String(pagamento.collector_id ?? "") !== String(env.MP_RECEBEDOR_ID ?? "")) problemas.push("conta_recebedora");
-  if (String(pagamento.external_reference ?? "") !== pedido.id) problemas.push("referencia");
+  // Cobrança mensal: a referência é a da assinatura (ou vazia, quando a ligação veio da busca de cobranças dela).
+  if (assinatura ? ref !== "" && ref !== `assinatura:${assinatura.id}` : ref !== pedido.id) problemas.push("referencia");
   if (pagamento.currency_id !== pedido.moeda) problemas.push("moeda");
   if (centavos(pagamento.transaction_amount) !== pedido.valor_centavos) problemas.push("valor");
   if (pedido.modo === "real" && pagamento.live_mode !== true) problemas.push("modo_teste_em_pedido_real");
@@ -266,7 +453,15 @@ export async function sincronizarPagamento(env, pagamentoId, origem, jaLido = nu
   const id = String(p.id ?? pagamentoId);
   const t = agora();
   const ref = String(p.external_reference ?? "");
-  const pedido = ref ? await env.DB.prepare("SELECT * FROM pedidos WHERE id = ?").bind(ref).first() : null;
+  let pedido = ref && !ref.startsWith("assinatura:") ? await env.DB.prepare("SELECT * FROM pedidos WHERE id = ?").bind(ref).first() : null;
+  let assinatura = null;
+  if (!pedido) {
+    // Cobrança mensal: o pedido nasce da assinatura (ligada pela busca de cobranças ou pela referência).
+    const c = await env.DB.prepare("SELECT c.pedido_id, a.* FROM cobrancas c JOIN assinaturas a ON a.id = c.assinatura_id WHERE c.pagamento_id = ?").bind(id).first();
+    if (c) assinatura = c;
+    else if (ref.startsWith("assinatura:")) assinatura = await env.DB.prepare("SELECT * FROM assinaturas WHERE id = ?").bind(ref.slice(11)).first();
+    if (assinatura) pedido = await pedidoDaCobranca(env, assinatura, id, c?.pedido_id);
+  }
 
   // Sem pedido nosso ou de outra conta: só registra, nunca libera nem revoga.
   if (!pedido || String(p.collector_id ?? "") !== String(env.MP_RECEBEDOR_ID ?? "")) {
@@ -276,7 +471,8 @@ export async function sincronizarPagamento(env, pagamentoId, origem, jaLido = nu
     return {resultado: conferencia};
   }
 
-  const problemas = conferirPagamento(p, pedido, env);
+  const problemas = conferirPagamento(p, pedido, env, assinatura);
+  const ehApoio = ["apoio", "apoio_mensal"].includes(await env.DB.prepare("SELECT tipo FROM produtos WHERE id = ?").bind(pedido.produto_id).first("tipo"));
   const total = centavos(p.transaction_amount);
   const reembolsado = centavos(p.transaction_amount_refunded || 0) || 0;
   let status = String(p.status || "");
@@ -289,7 +485,14 @@ export async function sincronizarPagamento(env, pagamentoId, origem, jaLido = nu
   let direito = null;
   const detalhes = [];
 
-  if (status === "approved") {
+  if (ehApoio && controla) {
+    // Apoio: o estado do pedido conta para a soma; grava primeiro e recalcula os tiers.
+    if (status === "approved" && problemas.length) { novoEstado = "divergente"; detalhes.push(`nao_liberado:${conferencia}`); }
+    const pagamentoId = status === "approved" && !problemas.length ? id : pedido.pagamento_id;
+    await env.DB.prepare("UPDATE pedidos SET estado = ?, pagamento_id = ?, atualizado_em = ? WHERE id = ?").bind(novoEstado, pagamentoId ?? null, t, pedido.id).run();
+    detalhes.push(...await recalcularApoio(env, pedido.uuid, pedido.id, `pagamento ${id} ${status}`));
+    if (reembolsado > 0 && status === "approved") detalhes.push(`reembolso_parcial:${reembolsado}:desconta_da_soma`);
+  } else if (status === "approved") {
     if (problemas.length) {
       novoEstado = controla ? "divergente" : pedido.estado;
       detalhes.push(`nao_liberado:${conferencia}`);
@@ -297,8 +500,7 @@ export async function sincronizarPagamento(env, pagamentoId, origem, jaLido = nu
       direito = await aplicarDireito(env, {uuid: pedido.uuid, produtoId: pedido.produto_id, pedidoId: pedido.id, estado: "ativo", motivo: `pagamento ${id} aprovado`});
       if (!direito.mudou && direito.estado === "ativo") {
         const dono = await env.DB.prepare("SELECT pedido_id FROM direitos WHERE uuid = ? AND produto_id = ?").bind(pedido.uuid, pedido.produto_id).first();
-        const tipo = await env.DB.prepare("SELECT tipo FROM produtos WHERE id = ?").bind(pedido.produto_id).first("tipo");
-        if (dono && dono.pedido_id !== pedido.id) detalhes.push(tipo === "apoio" ? "apoio_repetido" : "ja_possuia_por_outro_pedido:reembolsar_manual");
+        if (dono && dono.pedido_id !== pedido.id) detalhes.push("ja_possuia_por_outro_pedido:reembolsar_manual");
       }
       if (reembolsado > 0) detalhes.push(`reembolso_parcial:${reembolsado}:mantido_pela_politica`);
     } else {
@@ -420,8 +622,14 @@ async function conta(env, s) {
   const pedidos = await env.DB.prepare(
     `SELECT id, produto_id, valor_centavos, moeda, modo, estado, criado_em FROM pedidos WHERE uuid = ? ORDER BY criado_em DESC LIMIT 10`)
     .bind(s.uuid).all();
+  const soma = await somaDoApoio(env, s.uuid);
+  const assinatura = await env.DB.prepare(
+    `SELECT a.id, a.produto_id, p.nome, a.valor_centavos, a.estado, a.criado_em FROM assinaturas a JOIN produtos p ON p.id = a.produto_id
+     WHERE a.uuid = ? AND a.estado IN ('pendente', 'autorizada', 'pausada') ORDER BY a.criado_em DESC LIMIT 1`).bind(s.uuid).first();
+  const noMural = await env.DB.prepare("SELECT visivel FROM mural WHERE uuid = ?").bind(s.uuid).first("visivel");
   return {jogador: {uuid: s.uuid, nome: s.nome}, direitos: direitos.results, pedidos: pedidos.results,
-    apoio_liberado_em: await apoioLiberadoEm(env, s.uuid), agora: agora()};
+    apoio_total: soma.pago, apoio_liberado_em: soma.ultimo ? soma.ultimo + APOIO_DE_NOVO_SEGUNDOS : null, agora: agora(),
+    assinatura: assinatura || null, mural_visivel: noMural === null || noMural === undefined ? true : noMural === 1};
 }
 
 async function criarPedido(req, env, s) {
@@ -484,33 +692,20 @@ async function criarPedido(req, env, s) {
   return {pedido_id: id, checkout_url: url};
 }
 
-/** Quando o jogador pode apoiar de novo (um mês depois do último apoio pago), ou null se nunca apoiou. */
-async function apoioLiberadoEm(env, uuid) {
-  const r = await env.DB.prepare(
-    `SELECT MAX(pe.criado_em) AS ultimo FROM pedidos pe JOIN produtos p ON p.id = pe.produto_id
-     WHERE pe.uuid = ? AND p.tipo = 'apoio' AND pe.estado = 'pago'`).bind(uuid).first();
-  return r?.ultimo ? r.ultimo + APOIO_DE_NOVO_SEGUNDOS : null;
-}
-
 /**
- * Preço de um tier de apoio para este jogador: quem já tem um tier menor paga só a diferença.
- * Cada tier inclui os anteriores, então um tier igual ou menor ao que ele já tem só pode ser pago de novo
- * um mês depois do último apoio, pelo valor cheio e sem benefício novo (item e personagem são um por jogador).
- * Com um apoio em contestação, nada de apoio é vendido até a disputa acabar.
+ * Quanto custa o tier avulso para este jogador. Tudo soma: avulso, diferença e meses do apoio mensal.
+ * - Soma abaixo do tier: paga só o que falta para chegar nele.
+ * - Já tem o tier (soma igual ou maior): pode apoiar de novo pelo valor cheio, um mês depois do último
+ *   apoio pago; esse valor também soma (pode subir de tier). Item e personagem continuam um por jogador.
+ * - Com um apoio em contestação, nada de apoio é vendido até a disputa acabar.
  */
 export async function valorDoApoio(env, uuid, produto) {
-  const r = await env.DB.prepare(
-    `SELECT MAX(CASE WHEN d.estado = 'ativo' THEN p.preco_centavos END) AS maior, SUM(d.estado = 'suspenso') AS suspensos
-     FROM direitos d JOIN produtos p ON p.id = d.produto_id WHERE d.uuid = ? AND p.tipo = 'apoio' AND d.estado IN ('ativo', 'suspenso')`)
-    .bind(uuid).first();
-  if (r?.suspensos > 0) throw new Erro(409, "apoio_em_disputa");
-  const maior = r?.maior || 0;
-  if (maior >= produto.preco_centavos) {
-    const liberado = await apoioLiberadoEm(env, uuid);
-    if (liberado && liberado <= agora()) return produto.preco_centavos;
-    throw new Erro(409, "apoio_recente", {liberado_em: liberado});
-  }
-  return produto.preco_centavos - maior;
+  const {pago, disputa, ultimo} = await somaDoApoio(env, uuid);
+  if (disputa > 0) throw new Erro(409, "apoio_em_disputa");
+  if (pago < produto.preco_centavos) return produto.preco_centavos - pago;
+  const liberado = ultimo ? ultimo + APOIO_DE_NOVO_SEGUNDOS : null;
+  if (liberado && liberado <= agora()) return produto.preco_centavos;
+  throw new Erro(409, "apoio_recente", {liberado_em: liberado});
 }
 
 async function verPedido(env, s, id) {
@@ -543,17 +738,21 @@ async function webhook(req, env, url) {
     await registrar(false, assinatura.motivo);
     return json({erro: "assinatura_invalida"}, 401);
   }
-  if (tipo !== "payment") {
+  const TIPOS = ["payment", "subscription_preapproval", "subscription_authorized_payment"];
+  if (!TIPOS.includes(tipo)) {
     await registrar(true, "tipo_ignorado");
     return json({ok: true, ignorado: tipo});
   }
   // Só o id assinado (query) é usado; o corpo não decide nada.
-  if (!dataId || !/^\d{1,20}$/.test(dataId)) {
+  const idValido = tipo === "subscription_preapproval" ? /^[A-Za-z0-9]{1,64}$/ : /^\d{1,20}$/;
+  if (!dataId || !idValido.test(dataId)) {
     await registrar(true, "id_invalido");
     return json({erro: "id_invalido"}, 400);
   }
   try {
-    const r = await sincronizarPagamento(env, dataId, "webhook");
+    const r = tipo === "payment" ? await sincronizarPagamento(env, dataId, "webhook")
+      : tipo === "subscription_preapproval" ? await sincronizarAssinatura(env, dataId, "webhook")
+      : await sincronizarCobranca(env, dataId, "webhook");
     await registrar(true, r.resultado);
     return json({ok: true});
   } catch (e) {
@@ -673,7 +872,14 @@ export async function tarefas(env) {
   for (const {pagamento_id: pid} of pagos.results) {
     try { await sincronizarPagamento(env, pid, "reconferencia"); conciliados++; } catch (e) { console.log("reconferência falhou", pid, e.codigo || e.message); }
   }
-  // 3) Pedidos abandonados há mais de 3 dias viram expirados (um pagamento tardio ainda libera pelo webhook).
+  // 3) Assinaturas vivas: relê o estado e as cobranças (pega mês cobrado sem notificação).
+  const vivas = await env.DB.prepare(
+    `SELECT preapproval_id FROM assinaturas WHERE estado IN ('pendente', 'autorizada', 'pausada') AND preapproval_id IS NOT NULL
+       AND (conferido_em IS NULL OR conferido_em < ?) ORDER BY conferido_em IS NOT NULL, conferido_em LIMIT 5`).bind(t - 6 * 3600).all();
+  for (const {preapproval_id: pre} of vivas.results) {
+    try { await sincronizarAssinatura(env, pre, "conciliacao"); conciliados++; } catch (e) { console.log("assinatura falhou", pre, e.codigo || e.message); }
+  }
+  // 4) Pedidos abandonados há mais de 3 dias viram expirados (um pagamento tardio ainda libera pelo webhook).
   await env.DB.prepare("UPDATE pedidos SET estado = 'expirado', atualizado_em = ? WHERE estado IN ('criado', 'aguardando_pagamento') AND expira_em < ?")
     .bind(t, t - 2 * 86400).run();
   return {conciliados};
@@ -690,6 +896,7 @@ export async function handle(req, env) {
     let m;
     let r;
     if (caminho === "/api/catalogo" && req.method === "GET") r = await catalogo(env);
+    else if (caminho === "/api/apoiadores" && req.method === "GET") return json(await mural(env), 200, {...cors, "Cache-Control": "public, max-age=300"});
     else if (caminho === "/api/vinculos" && req.method === "POST") r = await iniciarVinculo(req, env);
     else if ((m = /^\/api\/vinculos\/([0-9a-f-]{36})$/.exec(caminho)) && req.method === "GET") {
       const v = await carregarVinculo(req, env, m[1]);
@@ -701,6 +908,9 @@ export async function handle(req, env) {
       await env.DB.prepare("UPDATE sessoes SET revogada = 1 WHERE token_hash = ?").bind(s.tokenHash).run();
       r = {ok: true};
     } else if (caminho === "/api/pedidos" && req.method === "POST") r = await criarPedido(req, env, await sessao(req, env));
+    else if (caminho === "/api/assinaturas" && req.method === "POST") r = await criarAssinatura(req, env, await sessao(req, env));
+    else if ((m = /^\/api\/assinaturas\/([0-9a-f-]{36})\/cancelar$/.exec(caminho)) && req.method === "POST") r = await cancelarAssinatura(env, await sessao(req, env), m[1]);
+    else if (caminho === "/api/mural" && req.method === "POST") r = await mudarMural(req, env, await sessao(req, env));
     else if ((m = /^\/api\/pedidos\/([0-9a-f-]{36})$/.exec(caminho)) && req.method === "GET") r = await verPedido(env, await sessao(req, env), m[1]);
     else if (caminho === "/webhooks/mercadopago" && req.method === "POST") return await webhook(req, env, url);
     else if (caminho.startsWith("/servidor/")) {

@@ -505,6 +505,12 @@ html[data-motion="off"] .reveal-ready { opacity: 1; translate: none; }
 .shop-card.is-soon { opacity: .55; }
 .shop-pet { display: grid; place-items: center; margin: -8px -8px 6px; aspect-ratio: 4 / 3; background: radial-gradient(circle at 50% 58%, rgba(167, 139, 250, .22), transparent 62%); border-bottom: 2px solid var(--border); }
 .shop-pet img { width: 78%; height: 100%; object-fit: contain; transition: transform .3s; filter: drop-shadow(0 10px 8px rgba(0, 0, 0, .45)); }
+.tier-modes { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; }
+.tier-modes [aria-pressed="true"] { border-color: var(--yellow); color: var(--yellow); }
+.tier-summary { margin: 0 0 16px; padding: 12px 16px; border-left: 4px solid var(--yellow); background: rgba(250, 204, 21, .05); font-size: 13px; }
+.tier-summary p { margin: 0 0 8px; }
+.tier-check { display: flex; gap: 8px; align-items: center; color: var(--muted); font-size: 12px; cursor: pointer; }
+.tier-email { margin: 0 0 16px; }
 .tier-card { --accent: var(--yellow); }
 .tier-card.is-mine { border-color: var(--yellow); }
 .tier-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -518,3 +524,13 @@ html[data-motion="off"] .reveal-ready { opacity: 1; translate: none; }
 .shop-price { margin: 6px 0 14px; color: var(--yellow); font-weight: 700; }
 .shop-price .badge { margin-left: 6px; font-weight: 400; color: var(--muted); }
 .shop-order { border-left: 4px solid var(--purple); }
+
+/* Mural de apoiadores (página inicial) */
+.supporters-tiers { display: grid; gap: 18px; }
+.supporters-tier h3 { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; font-size: 14px; color: var(--yellow); }
+.supporters-tier h3 .pixel-star { width: 20px; height: 20px; }
+.supporters-tier-1 h3 .pixel-star { width: 28px; height: 28px; }
+.supporters-tier ul { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.supporters-tier li { padding: 6px 12px; border: 2px solid var(--border2); background: rgba(255, 255, 255, .03); font-size: 13px; }
+.supporters-tier-1 li { border-color: var(--yellow); color: var(--yellow); }
+.supporters-tier-2 li { border-color: var(--purple); }

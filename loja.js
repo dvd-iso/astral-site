@@ -24,6 +24,10 @@
     vinculo_expirado: "O pedido expirou. Comece de novo.",
     vinculo_recusado: "O pedido foi recusado dentro do jogo.",
     ja_possui: "Você já tem este item.",
+    email_invalido: "Confira o e-mail: use o mesmo da sua conta do Mercado Pago.",
+    ja_assina: "Você já tem um apoio mensal. Cancele o atual para trocar de valor.",
+    assinatura_indisponivel: "Não foi possível abrir a assinatura agora. Tente de novo em instantes.",
+    mercado_pago_indisponivel: "O Mercado Pago não respondeu. Tente de novo em instantes.",
     apoio_recente: "Você apoiou há menos de um mês. Depois disso, pode apoiar de novo.",
     apoio_em_disputa: "Um apoio seu está em contestação. Espere a decisão para subir de tier.",
     vendas_reais_desativadas: "As vendas ainda não estão abertas.",
@@ -70,15 +74,44 @@
     return catalogo.filter(p => p.tipo === "apoio" && ativos.has(p.id)).sort((a, b) => b.preco_centavos - a.preco_centavos)[0] || null;
   }
 
+  let modoApoio = "unico";
+
   function desenharApoio() {
     const grade = $("[data-apoio]");
     if (!grade || catalogoFalhou) return;
     grade.replaceChildren();
     const atual = apoioAtual();
+    const total = conta?.apoio_total || 0;
     const temSuspenso = (conta?.direitos || []).some(d => d.estado === "suspenso" && String(d.produto_id).startsWith("apoio_"));
-    const tiers = catalogo.filter(p => p.tipo === "apoio" && p.ativo);
+    const tiers = catalogo.filter(p => p.tipo === "apoio" && p.ativo).sort((a, b) => a.preco_centavos - b.preco_centavos);
+    const mensais = catalogo.filter(p => p.tipo === "apoio_mensal" && p.ativo);
     $("[data-apoio-secao]").hidden = !tiers.length;
+    const abas = $("[data-apoio-modos]");
+    abas.hidden = !mensais.length;
+    if (!mensais.length) modoApoio = "unico";
+    abas.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.modo === modoApoio)));
+    $("[data-apoio-email]").hidden = true;
+
+    // Resumo da conta: quanto já apoiou, próximo tier, assinatura e mural.
+    const resumo = $("[data-apoio-resumo]");
+    resumo.hidden = !conta;
+    if (conta) {
+      const proximo = tiers.find(t => t.preco_centavos > total);
+      $("[data-apoio-total]").textContent = total
+        ? `Você já apoiou ${reais(total)}${atual ? ` e é ${atual.nome}` : ""}.` + (proximo ? ` Faltam ${reais(proximo.preco_centavos - total)} para ${proximo.nome}.` : " Você chegou ao maior tier. Obrigado!")
+        : "Você ainda não apoiou. Tudo o que você apoiar soma para o tier.";
+      const a = conta.assinatura;
+      const caixa = $("[data-assinatura]");
+      caixa.hidden = !a;
+      if (a) {
+        const estados = {pendente: "aguardando a autorização no Mercado Pago", autorizada: "ativa", pausada: "pausada"};
+        $("[data-assinatura-texto]").textContent = `${a.nome}: ${estados[a.estado] || a.estado}.`;
+      }
+      $("[data-mural]").checked = conta.mural_visivel !== false;
+    }
+
     for (const p of tiers) {
+      const mensal = mensais.find(m => m.preco_centavos === p.preco_centavos);
       const card = document.createElement("article");
       card.className = "feature shop-card tier-card" + (atual && atual.id === p.id ? " is-mine" : "");
       const topo = document.createElement("div");
@@ -101,27 +134,73 @@
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "btn";
-      const jaTem = atual ? atual.preco_centavos : 0;
-      const liberado = conta?.apoio_liberado_em && conta.apoio_liberado_em <= conta.agora + (Date.now() / 1000 - carregadoEm);
-      if (atual && jaTem >= p.preco_centavos && liberado && !temSuspenso && p.a_venda) {
-        btn.textContent = "Apoiar de novo";
-        btn.title = "Sem benefício novo: o item e o personagem são um por jogador.";
-        btn.addEventListener("click", () => comprar(p.id, btn));
-      } else if (atual && jaTem >= p.preco_centavos) {
-        btn.textContent = atual.id === p.id ? "Seu tier" : "Incluído no seu";
-        btn.disabled = true;
-        if (conta?.apoio_liberado_em) btn.title = `Pode apoiar de novo a partir de ${new Date(conta.apoio_liberado_em * 1000).toLocaleDateString("pt-BR")}.`;
-      }
-      else if (temSuspenso) { btn.textContent = "Em análise"; btn.disabled = true; }
-      else if (!p.a_venda) { btn.textContent = "Indisponível"; btn.disabled = true; }
-      else if (!conta) { btn.textContent = "Vincule a conta"; btn.disabled = true; }
-      else {
-        btn.textContent = jaTem ? `Subir por ${reais(p.preco_centavos - jaTem)}` : "Apoiar";
-        btn.addEventListener("click", () => comprar(p.id, btn));
+      if (modoApoio === "mensal" && mensal) {
+        valor.textContent = `${reais(mensal.preco_centavos)}/mês`;
+        if (conta?.assinatura && conta.assinatura.estado !== "pendente") { btn.textContent = conta.assinatura.produto_id === mensal.id ? "Sua assinatura" : "Já assina"; btn.disabled = true; }
+        else if (!mensal.a_venda) { btn.textContent = "Indisponível"; btn.disabled = true; }
+        else if (!conta) { btn.textContent = "Vincule a conta"; btn.disabled = true; }
+        else { btn.textContent = `Assinar ${reais(mensal.preco_centavos)}/mês`; btn.addEventListener("click", () => pedirEmail(mensal)); }
+      } else {
+        const falta = p.preco_centavos - total;
+        const liberado = conta?.apoio_liberado_em && conta.apoio_liberado_em <= conta.agora + (Date.now() / 1000 - carregadoEm);
+        if (falta <= 0 && liberado && !temSuspenso && p.a_venda) {
+          btn.textContent = "Apoiar de novo";
+          btn.title = "Soma para o seu tier. O item e o personagem são um por jogador.";
+          btn.addEventListener("click", () => comprar(p.id, btn));
+        } else if (falta <= 0) {
+          btn.textContent = atual && atual.id === p.id ? "Seu tier" : "Incluído no seu";
+          btn.disabled = true;
+          if (conta?.apoio_liberado_em) btn.title = `Pode apoiar de novo a partir de ${new Date(conta.apoio_liberado_em * 1000).toLocaleDateString("pt-BR")}.`;
+        } else if (temSuspenso) { btn.textContent = "Em análise"; btn.disabled = true; }
+        else if (!p.a_venda) { btn.textContent = "Indisponível"; btn.disabled = true; }
+        else if (!conta) { btn.textContent = "Vincule a conta"; btn.disabled = true; }
+        else {
+          btn.textContent = total ? `Completar com ${reais(falta)}` : "Apoiar";
+          btn.addEventListener("click", () => comprar(p.id, btn));
+        }
       }
       card.append(btn);
       grade.append(card);
     }
+  }
+
+  let mensalEscolhido = null;
+  function pedirEmail(mensal) {
+    erro(null);
+    mensalEscolhido = mensal;
+    const f = $("[data-apoio-email]");
+    $("[data-apoio-email-titulo]").textContent = `${mensal.nome}, cobrado todo mês no cartão.`;
+    f.hidden = false;
+    f.querySelector("input").focus();
+  }
+
+  async function assinar(ev) {
+    ev.preventDefault();
+    if (!mensalEscolhido) return;
+    erro(null);
+    const f = ev.currentTarget;
+    const btn = f.querySelector("button[type=submit]");
+    btn.disabled = true;
+    try {
+      const r = await api("/api/assinaturas", {metodo: "POST", corpo: {produto_id: mensalEscolhido.id, email: f.email.value.trim()}});
+      const url = new URL(r.checkout_url);
+      if (url.protocol !== "https:" || !/(^|\.)mercadopago\.com(\.br)?$/.test(url.hostname)) throw new Error("assinatura_indisponivel");
+      location.assign(url.href);
+    } catch (e) {
+      erro(e.codigo || "assinatura_indisponivel");
+      btn.disabled = false;
+    }
+  }
+
+  async function cancelarAssinatura(btn) {
+    if (!conta?.assinatura) return;
+    erro(null);
+    btn.disabled = true;
+    try {
+      await api(`/api/assinaturas/${conta.assinatura.id}/cancelar`, {metodo: "POST", corpo: {}});
+      await carregarConta(); mostrarConta(); desenharCatalogo();
+    } catch (e) { erro(e.codigo || "mercado_pago_indisponivel"); }
+    btn.disabled = false;
   }
 
   function desenharCatalogo() {
@@ -338,7 +417,24 @@
     desenharCatalogo();
     const pedido = new URLSearchParams(location.search).get("pedido");
     if (pedido && /^[0-9a-f-]{36}$/.test(pedido)) acompanharPedido(pedido);
+    const assinatura = new URLSearchParams(location.search).get("assinatura");
+    if (assinatura && /^[0-9a-f-]{36}$/.test(assinatura)) {
+      $("[data-shop-order]").hidden = false;
+      $("[data-order-status]").textContent = "Assinatura enviada ao Mercado Pago. Quando o primeiro mês for cobrado, ele soma para o seu tier e o cargo chega no Discord. Pode levar alguns minutos.";
+    }
   }
+
+  document.querySelectorAll("[data-apoio-modos] button").forEach(b => b.addEventListener("click", () => { modoApoio = b.dataset.modo; desenharApoio(); }));
+  $("[data-apoio-email]").addEventListener("submit", assinar);
+  $("[data-apoio-email-cancelar]").addEventListener("click", () => { $("[data-apoio-email]").hidden = true; });
+  $("[data-assinatura-cancelar]").addEventListener("click", ev => cancelarAssinatura(ev.currentTarget));
+  $("[data-mural]").addEventListener("change", async ev => {
+    const caixa = ev.currentTarget;
+    caixa.disabled = true;
+    try { await api("/api/mural", {metodo: "POST", corpo: {visivel: caixa.checked}}); if (conta) conta.mural_visivel = caixa.checked; }
+    catch (e) { caixa.checked = !caixa.checked; erro(e.codigo); }
+    caixa.disabled = false;
+  });
 
   iniciar();
 })();
