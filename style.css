@@ -503,6 +503,10 @@ html[data-motion="off"] .reveal-ready { opacity: 1; translate: none; }
 .shop-card { --accent: var(--purple); display: flex; flex-direction: column; gap: 4px; }
 .shop-card .btn { margin-top: auto; align-self: flex-start; }
 .shop-card.is-soon { opacity: .55; }
+.shop-pet { display: grid; place-items: center; margin: -8px -8px 6px; aspect-ratio: 4 / 3; background: radial-gradient(circle at 50% 58%, rgba(167, 139, 250, .22), transparent 62%); border-bottom: 2px solid var(--border); }
+.shop-pet img { width: 78%; height: 100%; object-fit: contain; transition: transform .3s; filter: drop-shadow(0 10px 8px rgba(0, 0, 0, .45)); }
+.shop-card:hover .shop-pet img { transform: translateY(-4px) rotate(-2deg); }
+@media (prefers-reduced-motion: reduce) { .shop-card:hover .shop-pet img { transform: none; } }
 .shop-price { margin: 6px 0 14px; color: var(--yellow); font-weight: 700; }
 .shop-price .badge { margin-left: 6px; font-weight: 400; color: var(--muted); }
 .shop-order { border-left: 4px solid var(--purple); }

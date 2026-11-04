@@ -69,6 +69,16 @@
     for (const p of catalogo) {
       const card = document.createElement("article");
       card.className = "feature shop-card" + (p.ativo ? "" : " is-soon");
+      const foto = document.createElement("div");
+      foto.className = "shop-pet";
+      const img = document.createElement("img");
+      img.src = `artes/pets/${p.id}.png`;
+      img.alt = `${p.nome} em 3D`;
+      img.width = 512; img.height = 512;
+      img.loading = "lazy"; img.decoding = "async";
+      img.addEventListener("error", () => foto.remove());
+      foto.append(img);
+      card.append(foto);
       const h = document.createElement("h3");
       h.textContent = p.nome;
       const d = document.createElement("p");
