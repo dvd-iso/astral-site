@@ -1,11 +1,14 @@
 -- Apoio: tiers por SOMA do que o jogador já apoiou (avulso por Pix/cartão ou mensal no cartão).
 -- Cada pagamento aprovado vira um pedido pago; o tier é o maior cujo valor cabe na soma, e fica para sempre
 -- (só cai se o dinheiro voltar: reembolso ou contestação).
--- O SQLite não altera CHECK: a tabela produtos é recriada. defer_foreign_keys deixa pedidos/direitos
--- apontando para "produtos" durante a troca; as chaves são conferidas no fim da transação.
+-- O SQLite não altera CHECK: a tabela produtos é recriada (troca de nomes, sem apagar a tabela pai com filhos).
 PRAGMA defer_foreign_keys = on;
-
-CREATE TABLE produtos_novo (
+-- Copia, apaga e recria com o MESMO nome. Ao apagar, pedidos/direitos ficam sem pai por um instante (contado como
+-- pendência adiada); reinserir cada produto na tabela nova resolve a pendência. Renomear não serviria: com chaves
+-- estrangeiras ligadas o SQLite reescreve as referências para o nome antigo.
+CREATE TABLE produtos_copia AS SELECT * FROM produtos;
+DROP TABLE produtos;
+CREATE TABLE produtos (
   id               TEXT PRIMARY KEY,
   tipo             TEXT NOT NULL CHECK (tipo IN ('pet', 'apoio', 'apoio_mensal')),
   nome             TEXT NOT NULL,
@@ -18,9 +21,8 @@ CREATE TABLE produtos_novo (
   criado_em        INTEGER NOT NULL,
   atualizado_em    INTEGER NOT NULL
 );
-INSERT INTO produtos_novo SELECT id, tipo, nome, descricao, preco_centavos, moeda, preco_confirmado, ativo, ordem, criado_em, atualizado_em FROM produtos;
-DROP TABLE produtos;
-ALTER TABLE produtos_novo RENAME TO produtos;
+INSERT INTO produtos SELECT id, tipo, nome, descricao, preco_centavos, moeda, preco_confirmado, ativo, ordem, criado_em, atualizado_em FROM produtos_copia;
+DROP TABLE produtos_copia;
 
 -- Tiers: cada um inclui os anteriores. O avulso cobra só o que falta para chegar ao tier (regra no Worker).
 -- Começam inativos: o dono liga depois de conferir (UPDATE produtos SET ativo = 1 WHERE tipo = 'apoio').
