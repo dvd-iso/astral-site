@@ -29,6 +29,12 @@ window.ASTRAL_CONFIG = {
     channelUrl: "https://raw.githubusercontent.com/dvd-iso/astral-installer/main/channel/stable.json",
   },
 
+  // Loja de pets (loja.html). Endereço do Worker astral-loja; "" mostra "em preparação".
+  // Ao mudar o endereço, atualize também o connect-src do Content-Security-Policy em loja.html.
+  loja: {
+    apiUrl: "https://astral-loja.3237049369557647.workers.dev",
+  },
+
   // Link de convite da comunidade no Discord (opcional, deixe "" para esconder o botão)
   discordInviteUrl: "https://discord.gg/shrznbFeM",
 

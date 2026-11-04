@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- connect-src: o Worker astral-loja. Pagamento acontece no site do Mercado Pago (redirecionamento). -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; frame-src 'none'; connect-src 'self' https://astral-loja.3237049369557647.workers.dev; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <meta name="robots" content="noindex" />
+  <meta name="theme-color" content="#050508" />
+  <title>Loja de pets — Astral</title>
+  <meta name="description" content="Pets cosméticos do Astral: companhia que segue você pelo mundo, sem vantagens no jogo." />
+  <link rel="preload" href="fonts/Monocraft.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="stylesheet" href="style.css?v=25" />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+</head>
+<body data-page="loja" data-page-title="Loja">
+  <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+  <svg class="sprite" aria-hidden="true">
+    <symbol id="star" viewBox="0 0 17 17">
+      <path class="star-line" d="M8 0h1v2h-1zM8 15h1v2h-1zM0 8h2v1h-2zM15 8h2v1h-2zM7 2h1v3h-1zM9 2h1v3h-1zM7 12h1v3h-1zM9 12h1v3h-1zM2 7h3v1h-3zM12 7h3v1h-3zM2 9h3v1h-3zM12 9h3v1h-3zM4 4h2v1h-2zM11 4h2v1h-2zM4 12h2v1h-2zM11 12h2v1h-2zM4 5h1v1h-1zM12 5h1v1h-1zM4 11h1v1h-1zM12 11h1v1h-1zM6 5h1v1h-1zM10 5h1v1h-1zM6 11h1v1h-1zM10 11h1v1h-1zM5 6h1v1h-1zM11 6h1v1h-1zM5 10h1v1h-1zM11 10h1v1h-1z" />
+      <path class="star-core" d="M8 7h1v1h-1zM7 8h3v1h-3zM8 9h1v1h-1z" />
+    </symbol>
+  </svg>
+  <canvas id="stars" aria-hidden="true"></canvas>
+
+  <header class="nav">
+    <a href="index.html" class="logo" aria-label="Astral — Início"><svg class="pixel-star logo-star" aria-hidden="true"><use href="#star" /></svg><span data-name>Astral</span></a>
+    <nav id="siteNavigation" aria-label="Navegação principal">
+      <a href="index.html">Início</a><a href="sobre.html">Sobre</a><a href="regras.html">Regras</a><a href="mapa/">Mapa</a>
+      <a href="index.html#apoie">Apoie</a>
+      <a href="#" class="nav-mobile-community" data-discord hidden target="_blank" rel="noopener">Discord ↗</a>
+    </nav>
+    <div class="nav-actions">
+      <a href="jogar.html" class="btn btn-small play-button" data-play>Jogar</a>
+      <a href="#" class="btn btn-small btn-ghost nav-community" data-discord hidden target="_blank" rel="noopener">Discord ↗</a>
+      <button type="button" class="nav-toggle" id="navToggle" aria-label="Abrir menu" aria-controls="siteNavigation" aria-expanded="false" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path class="menu-bars" d="M4 5h16v2H4zM4 11h16v2H4zM4 17h16v2H4z"/><path class="menu-cross" d="M5 5h3v3H5zM8 8h3v3H8zM11 11h3v3h-3zM14 14h3v3h-3zM17 17h3v3h-3zM17 5h3v3h-3zM14 8h3v3h-3zM8 14h3v3H8zM5 17h3v3H5z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main id="conteudo" tabindex="-1">
+    <header class="page-header">
+      <p class="eyebrow"><svg class="pixel-icon" aria-hidden="true" focusable="false"><use href="icons.svg#campfire" /></svg>Loja de pets</p>
+      <h1>Uma companhia<br><span class="text-accent">para a sua jornada.</span></h1>
+      <p class="tagline">Pets cosméticos: seguem você pelo mundo e não dão nenhuma vantagem. Compra única, sua para sempre.</p>
+    </header>
+
+    <p class="shop-banner" data-shop-mode hidden></p>
+
+    <!-- Andamento de um pedido (volta do Mercado Pago). Só informa: quem libera é a confirmação do pagamento. -->
+    <section class="block shop-order" data-shop-order hidden aria-live="polite">
+      <header class="block-head"><h2>Seu pedido</h2></header>
+      <p data-order-status class="muted">Consultando…</p>
+      <p class="tiny muted">Esta página só mostra o andamento. O pet é liberado quando o Mercado Pago confirma o pagamento ao nosso servidor, mesmo que você feche esta aba.</p>
+    </section>
+
+    <section class="block shop-account" aria-labelledby="accountTitle" data-reveal>
+      <header class="block-head"><h2 id="accountTitle"><svg class="pixel-icon section-icon" aria-hidden="true" focusable="false"><use href="icons.svg#player" /></svg>Sua conta do jogo</h2></header>
+
+      <div data-step="sem-api" hidden>
+        <p class="muted">A loja está em preparação. Volte em breve.</p>
+      </div>
+
+      <form data-step="nick" hidden class="shop-form" novalidate>
+        <p class="muted">Para comprar, vincule a conta Minecraft original com que você joga no Astral.</p>
+        <label for="shopNick">Seu nick no jogo</label>
+        <div class="shop-row">
+          <input id="shopNick" name="nick" autocomplete="username" spellcheck="false" maxlength="16" pattern="[A-Za-z0-9_]{3,16}" required />
+          <button class="btn" type="submit">Vincular</button>
+        </div>
+        <p class="tiny muted">Depois, entre no servidor com essa conta: um código vai aparecer na sua tela do jogo.</p>
+      </form>
+
+      <div data-step="aguardando" hidden>
+        <p><strong>Entre no servidor Astral</strong> com a conta <strong data-nick></strong>. Uma janela com um código vai aparecer na tela do jogo.</p>
+        <p class="tiny muted" data-wait-hint>Aguardando você no jogo… (vale por 10 minutos)</p>
+        <button class="text-button" type="button" data-cancel>Usar outro nick</button>
+      </div>
+
+      <form data-step="codigo" hidden class="shop-form" novalidate>
+        <p>Digite o código que apareceu <strong>na tela do jogo</strong>.</p>
+        <label for="shopCode">Código</label>
+        <div class="shop-row">
+          <input id="shopCode" name="codigo" autocomplete="one-time-code" spellcheck="false" maxlength="7" placeholder="ABC-123" required />
+          <button class="btn" type="submit">Confirmar</button>
+        </div>
+        <button class="text-button" type="button" data-cancel>Cancelar</button>
+      </form>
+
+      <div data-step="conta" hidden>
+        <p>Conta vinculada: <strong data-account-name></strong></p>
+        <p class="tiny muted" data-owned></p>
+        <button class="text-button" type="button" data-logout>Sair desta conta</button>
+      </div>
+
+      <p class="shop-error" role="alert" data-error hidden></p>
+    </section>
+
+    <section class="block" aria-labelledby="petsTitle" data-reveal>
+      <header class="block-head"><h2 id="petsTitle"><svg class="pixel-icon section-icon" aria-hidden="true" focusable="false"><use href="icons.svg#spark" /></svg>Pets</h2></header>
+      <p class="muted">Só um pet acompanha você por vez. No jogo, agache e clique no seu pet para trocar ou guardar.</p>
+      <div class="shop-grid" data-catalog><p class="muted">Carregando…</p></div>
+    </section>
+
+    <section class="block legal shop-policy" aria-labelledby="policyTitle" data-reveal>
+      <header class="block-head"><h2 id="policyTitle"><svg class="pixel-icon section-icon" aria-hidden="true" focusable="false"><use href="icons.svg#scroll" /></svg>Como funciona</h2></header>
+      <ul>
+        <li><strong>Compra única e permanente.</strong> O pet fica na sua conta enquanto o Astral existir, sem mensalidade.</li>
+        <li><strong>Só enfeite.</strong> O pet não luta, não coleta itens, não produz recursos, não se reproduz, não pode ser montado e não protege de nada.</li>
+        <li><strong>Pagamento pelo Mercado Pago</strong>, com Pix ou cartão. O Astral não vê nem guarda dados do seu cartão.</li>
+        <li><strong>Entrega automática</strong> quando o pagamento é confirmado. Se você estiver fora do jogo ou o servidor estiver desligado, o pet espera por você.</li>
+        <li><strong>Arrependimento:</strong> você pode pedir o reembolso em até 7 dias depois da compra pelo Discord. Com o reembolso, o pet é removido.</li>
+        <li><strong>Contestação:</strong> enquanto uma contestação do pagamento estiver aberta, o pet fica suspenso. Se for resolvida a favor do pagamento, ele volta; se o valor for estornado, o pet é removido.</li>
+        <li><strong>Apoio é outra coisa.</strong> Doações pelo Apoia.se são voluntárias e não liberam pets nem vantagens. Os pets são vendidos só aqui.</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    <div class="footer-meta"><p><span data-name>Astral</span> · Feito de blocos. Lembrado por pessoas.</p><p class="footer-legal">Não afiliado à Mojang ou à Microsoft. · <a href="privacidade.html">Privacidade</a></p></div>
+    <div class="footer-social" data-social-links hidden>
+      <a href="#" data-social="instagramUrl" hidden target="_blank" rel="noopener" aria-label="Instagram do Astral" title="Instagram"><svg class="pixel-icon" aria-hidden="true" focusable="false"><use href="icons.svg#instagram" /></svg></a>
+      <a href="#" data-social="tiktokUrl" hidden target="_blank" rel="noopener" aria-label="TikTok do Astral" title="TikTok"><svg class="pixel-icon" aria-hidden="true" focusable="false"><use href="icons.svg#tiktok" /></svg></a>
+    </div>
+    <button class="motion-toggle" type="button" data-motion-toggle aria-pressed="false" hidden><span class="motion-icon" aria-hidden="true"></span><span data-motion-label>Pausar animações</span></button>
+  </footer>
+  <script src="config.js?v=29"></script>
+  <script src="app.js?v=24"></script>
+  <script src="loja.js?v=1"></script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+{
+  // Loja de pets do Astral: API do site, webhook do Mercado Pago e fila de entregas do plugin AstralLoja.
+  // Guia completo: docs/loja.md. NUNCA coloque tokens aqui: segredos vão por `wrangler secret put`:
+  //   MP_ACCESS_TOKEN    Access Token do Mercado Pago (credencial de TESTE enquanto LOJA_MODO = "teste")
+  //   MP_WEBHOOK_SECRET  Assinatura secreta dos Webhooks (Suas integrações → Webhooks)
+  //   SERVIDOR_SEGREDO   Chave HMAC compartilhada com o plugin (mínimo 32 caracteres; o mesmo valor vai
+  //                      para plugins/AstralLoja/segredo.txt no servidor)
+  //   IP_SAL             Texto aleatório usado para guardar só o hash do IP nos limites de tentativa
+  "name": "astral-loja",
+  "account_id": "87ac68789dc6936ed1a5d8e1d6ac4d20",
+  "main": "loja.mjs",
+  "compatibility_date": "2026-10-26",
+  "workers_dev": true,
+  "preview_urls": false,
+  "observability": {"enabled": false},
+  "triggers": {"crons": ["*/10 * * * *"]},
+  "vars": {
+    // "teste" usa credenciais de teste; "real" só vende com LOJA_VENDAS_REAIS = "sim" E preço confirmado no banco.
+    "LOJA_MODO": "teste",
+    "LOJA_VENDAS_REAIS": "nao",
+    "LOJA_PAUSADA": "nao",
+    // User ID da conta que recebe (o vendedor de teste agora; a sua conta quando for real). Conferido em cada pagamento.
+    "MP_RECEBEDOR_ID": "3816317940",
+    // 0 = não rejeita notificação pelo horário (o pagamento é sempre relido na API). Use 600 para limitar repetições.
+    "MP_TOLERANCIA_SEGUNDOS": "0",
+    // "sim" usa sandbox_init_point no modo teste. Com conta vendedora de teste, o init_point normal já é o teste.
+    "MP_USAR_SANDBOX_INIT_POINT": "nao",
+    "SITE_URL": "https://astralmc.online",
+    "ALLOWED_ORIGINS": "https://astralmc.online,https://www.astralmc.online"
+  },
+  "d1_databases": [
+    // Criado em 2026-11-04 (região ENAM).
+    {"binding": "DB", "database_name": "astral-loja", "database_id": "654d1f47-6f73-4e04-87c4-a32690b9b282", "migrations_dir": "migrations/loja"}
+  ]
+}

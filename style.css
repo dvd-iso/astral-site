@@ -491,3 +491,18 @@ html[data-motion="off"] .reveal-ready { opacity: 1; translate: none; }
   .reveal-ready { opacity: 1 !important; translate: none !important; }
 }
 [hidden] { display: none !important; }
+
+/* ---------- Loja de pets ---------- */
+.shop-banner { max-width: var(--wrap); margin: 0 auto 18px; padding: 10px 16px; border: 2px dashed var(--yellow); color: var(--yellow); font-size: 12px; text-align: center; }
+.shop-form label { display: block; margin: 14px 0 8px; font-size: 12px; color: var(--muted); }
+.shop-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: stretch; }
+.shop-row input { flex: 1 1 220px; min-height: 46px; padding: 10px 14px; border: 2px solid var(--border2); background: rgba(0, 0, 0, .35); color: var(--text); font: inherit; font-size: 14px; }
+.shop-row input:focus-visible { outline: 2px solid var(--purple); outline-offset: 2px; }
+.shop-error { margin: 14px 0 0; padding: 10px 14px; border-left: 4px solid var(--bad); background: rgba(248, 113, 113, .08); color: var(--bad); font-size: 12px; }
+.shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+.shop-card { --accent: var(--purple); display: flex; flex-direction: column; gap: 4px; }
+.shop-card .btn { margin-top: auto; align-self: flex-start; }
+.shop-card.is-soon { opacity: .55; }
+.shop-price { margin: 6px 0 14px; color: var(--yellow); font-weight: 700; }
+.shop-price .badge { margin-left: 6px; font-weight: 400; color: var(--muted); }
+.shop-order { border-left: 4px solid var(--purple); }
