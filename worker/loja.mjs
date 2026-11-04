@@ -16,6 +16,7 @@ const VINCULO_SEGUNDOS = 10 * 60;
 const SESSAO_SEGUNDOS = 30 * 24 * 3600;
 const PEDIDO_SEGUNDOS = 24 * 3600;
 const TENTATIVAS_CODIGO = 5;
+const APOIO_DE_NOVO_SEGUNDOS = 30 * 86400; // depois de um mês do último apoio pago, pode apoiar de novo
 const ALFABETO_CODIGO = /^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$/;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const NOME_RE = /^[A-Za-z0-9_]{3,16}$/;
@@ -296,7 +297,8 @@ export async function sincronizarPagamento(env, pagamentoId, origem, jaLido = nu
       direito = await aplicarDireito(env, {uuid: pedido.uuid, produtoId: pedido.produto_id, pedidoId: pedido.id, estado: "ativo", motivo: `pagamento ${id} aprovado`});
       if (!direito.mudou && direito.estado === "ativo") {
         const dono = await env.DB.prepare("SELECT pedido_id FROM direitos WHERE uuid = ? AND produto_id = ?").bind(pedido.uuid, pedido.produto_id).first();
-        if (dono && dono.pedido_id !== pedido.id) detalhes.push("ja_possuia_por_outro_pedido:reembolsar_manual");
+        const tipo = await env.DB.prepare("SELECT tipo FROM produtos WHERE id = ?").bind(pedido.produto_id).first("tipo");
+        if (dono && dono.pedido_id !== pedido.id) detalhes.push(tipo === "apoio" ? "apoio_repetido" : "ja_possuia_por_outro_pedido:reembolsar_manual");
       }
       if (reembolsado > 0) detalhes.push(`reembolso_parcial:${reembolsado}:mantido_pela_politica`);
     } else {
@@ -418,7 +420,8 @@ async function conta(env, s) {
   const pedidos = await env.DB.prepare(
     `SELECT id, produto_id, valor_centavos, moeda, modo, estado, criado_em FROM pedidos WHERE uuid = ? ORDER BY criado_em DESC LIMIT 10`)
     .bind(s.uuid).all();
-  return {jogador: {uuid: s.uuid, nome: s.nome}, direitos: direitos.results, pedidos: pedidos.results};
+  return {jogador: {uuid: s.uuid, nome: s.nome}, direitos: direitos.results, pedidos: pedidos.results,
+    apoio_liberado_em: await apoioLiberadoEm(env, s.uuid), agora: agora()};
 }
 
 async function criarPedido(req, env, s) {
@@ -428,8 +431,9 @@ async function criarPedido(req, env, s) {
   const produto = await env.DB.prepare("SELECT * FROM produtos WHERE id = ?").bind(produtoId).first();
   const bloqueio = bloqueioDeVenda(env, produto);
   if (bloqueio) throw new Erro(produto ? 403 : 404, bloqueio);
-  const possui = await env.DB.prepare("SELECT estado FROM direitos WHERE uuid = ? AND produto_id = ? AND estado IN ('ativo', 'suspenso')")
-    .bind(s.uuid, produtoId).first();
+  const possui = produto.tipo === "apoio" ? null
+    : await env.DB.prepare("SELECT estado FROM direitos WHERE uuid = ? AND produto_id = ? AND estado IN ('ativo', 'suspenso')")
+      .bind(s.uuid, produtoId).first();
   if (possui) throw new Erro(409, "ja_possui");
   const valor = produto.tipo === "apoio" ? await valorDoApoio(env, s.uuid, produto) : produto.preco_centavos;
   const t = agora();
@@ -480,10 +484,19 @@ async function criarPedido(req, env, s) {
   return {pedido_id: id, checkout_url: url};
 }
 
+/** Quando o jogador pode apoiar de novo (um mês depois do último apoio pago), ou null se nunca apoiou. */
+async function apoioLiberadoEm(env, uuid) {
+  const r = await env.DB.prepare(
+    `SELECT MAX(pe.criado_em) AS ultimo FROM pedidos pe JOIN produtos p ON p.id = pe.produto_id
+     WHERE pe.uuid = ? AND p.tipo = 'apoio' AND pe.estado = 'pago'`).bind(uuid).first();
+  return r?.ultimo ? r.ultimo + APOIO_DE_NOVO_SEGUNDOS : null;
+}
+
 /**
  * Preço de um tier de apoio para este jogador: quem já tem um tier menor paga só a diferença.
- * Cada tier inclui os anteriores, então ter um tier igual ou maior bloqueia a compra; com um apoio
- * em contestação, nada de apoio é vendido até a disputa acabar.
+ * Cada tier inclui os anteriores, então um tier igual ou menor ao que ele já tem só pode ser pago de novo
+ * um mês depois do último apoio, pelo valor cheio e sem benefício novo (item e personagem são um por jogador).
+ * Com um apoio em contestação, nada de apoio é vendido até a disputa acabar.
  */
 export async function valorDoApoio(env, uuid, produto) {
   const r = await env.DB.prepare(
@@ -492,7 +505,11 @@ export async function valorDoApoio(env, uuid, produto) {
     .bind(uuid).first();
   if (r?.suspensos > 0) throw new Erro(409, "apoio_em_disputa");
   const maior = r?.maior || 0;
-  if (maior >= produto.preco_centavos) throw new Erro(409, "ja_possui");
+  if (maior >= produto.preco_centavos) {
+    const liberado = await apoioLiberadoEm(env, uuid);
+    if (liberado && liberado <= agora()) return produto.preco_centavos;
+    throw new Erro(409, "apoio_recente", {liberado_em: liberado});
+  }
   return produto.preco_centavos - maior;
 }
 

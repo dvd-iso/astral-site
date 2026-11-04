@@ -432,7 +432,7 @@ test("apoio: tiers começam desligados, sobem pagando só a diferença e não se
   await notificar(env, 2001);
   assert.equal(linha(env, "SELECT estado FROM direitos WHERE produto_id = 'apoio_20'").estado, "ativo");
 
-  assert.equal((await pedir("apoio_20")).dados.erro, "ja_possui");
+  assert.equal((await pedir("apoio_20")).dados.erro, "apoio_recente");
   const p50 = await pedir("apoio_50");
   assert.equal(p50.status, 200);
   assert.equal(linha(env, "SELECT valor_centavos FROM pedidos WHERE id = ?", p50.dados.pedido_id).valor_centavos, 3000, "só a diferença");
@@ -446,8 +446,8 @@ test("apoio: tiers começam desligados, sobem pagando só a diferença e não se
   assert.equal(linha(env, "SELECT estado FROM direitos WHERE produto_id = 'apoio_50'").estado, "ativo");
 
   // Ter o 50 bloqueia o 20 e o 50; o 100 sai por 50.
-  assert.equal((await pedir("apoio_20")).dados.erro, "ja_possui");
-  assert.equal((await pedir("apoio_50")).dados.erro, "ja_possui");
+  assert.equal((await pedir("apoio_20")).dados.erro, "apoio_recente");
+  assert.equal((await pedir("apoio_50")).dados.erro, "apoio_recente");
   const p100 = await pedir("apoio_100");
   assert.equal(linha(env, "SELECT valor_centavos FROM pedidos WHERE id = ?", p100.dados.pedido_id).valor_centavos, 5000);
 
@@ -459,4 +459,42 @@ test("apoio: tiers começam desligados, sobem pagando só a diferença e não se
   // As entregas do apoio vão para o plugin como as dos pets.
   const e = await servidor(env, "POST", "/servidor/entregas");
   assert.deepEqual(e.dados.entregas.map(x => `${x.produto_id}:${x.acao}`).sort(), ["apoio_20:liberar", "apoio_50:suspender"]);
+});
+
+test("apoio: um mês depois do último apoio pago, pode apoiar de novo pelo valor cheio, sem benefício novo", async () => {
+  const {env, mp} = ambiente();
+  const token = await vincular(env);
+  const auth = {Authorization: `Bearer ${token}`};
+  const pedir = id => site(env, "POST", "/api/pedidos", {produto_id: id}, auth);
+  env.DB.sqlite.exec("UPDATE produtos SET ativo = 1 WHERE tipo = 'apoio'");
+  const p50 = await pedir("apoio_50");
+  mp.pagar(3001, p50.dados.pedido_id, {transaction_amount: 50});
+  await notificar(env, 3001);
+
+  const cedo = await pedir("apoio_50");
+  assert.equal(cedo.status, 409);
+  assert.equal(cedo.dados.erro, "apoio_recente");
+  assert.ok(cedo.dados.liberado_em > agora() + 29 * 86400, "a página sabe quando libera");
+  assert.equal((await site(env, "GET", "/api/conta", undefined, auth)).dados.apoio_liberado_em, cedo.dados.liberado_em);
+
+  // Passa um mês.
+  env.DB.sqlite.exec(`UPDATE pedidos SET criado_em = criado_em - ${31 * 86400}`);
+  const de20 = await pedir("apoio_20");
+  assert.equal(de20.status, 200);
+  assert.equal(linha(env, "SELECT valor_centavos FROM pedidos WHERE id = ?", de20.dados.pedido_id).valor_centavos, 2000, "valor cheio");
+  const de50 = await pedir("apoio_50");
+  assert.equal(linha(env, "SELECT valor_centavos FROM pedidos WHERE id = ?", de50.dados.pedido_id).valor_centavos, 5000);
+  // Subir continua custando só a diferença.
+  const de100 = await pedir("apoio_100");
+  assert.equal(linha(env, "SELECT valor_centavos FROM pedidos WHERE id = ?", de100.dados.pedido_id).valor_centavos, 5000);
+
+  // Pagar o 50 de novo: nada de entrega nova (sem segundo item), registrado como apoio repetido, não como erro.
+  const entregasAntes = linhas(env, "SELECT * FROM entregas").length;
+  mp.pagar(3002, de50.dados.pedido_id, {transaction_amount: 50});
+  await notificar(env, 3002);
+  assert.equal(linha(env, "SELECT estado FROM pedidos WHERE id = ?", de50.dados.pedido_id).estado, "pago");
+  assert.equal(linhas(env, "SELECT * FROM entregas").length, entregasAntes);
+  assert.match(linha(env, "SELECT detalhe FROM eventos_pagamento WHERE pagamento_id = '3002'").detalhe, /apoio_repetido/);
+  // E o relógio recomeça: agora precisa esperar outro mês.
+  assert.equal((await pedir("apoio_20")).dados.erro, "apoio_recente");
 });

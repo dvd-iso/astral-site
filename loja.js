@@ -13,6 +13,7 @@
   let catalogo = [];
   let catalogoFalhou = false;
   let conta = null;
+  let carregadoEm = 0;
   let espera = null;
 
   const MENSAGENS = {
@@ -23,6 +24,7 @@
     vinculo_expirado: "O pedido expirou. Comece de novo.",
     vinculo_recusado: "O pedido foi recusado dentro do jogo.",
     ja_possui: "Você já tem este item.",
+    apoio_recente: "Você apoiou há menos de um mês. Depois disso, pode apoiar de novo.",
     apoio_em_disputa: "Um apoio seu está em contestação. Espere a decisão para subir de tier.",
     vendas_reais_desativadas: "As vendas ainda não estão abertas.",
     preco_nao_confirmado: "As vendas ainda não estão abertas.",
@@ -100,7 +102,16 @@
       btn.type = "button";
       btn.className = "btn";
       const jaTem = atual ? atual.preco_centavos : 0;
-      if (atual && jaTem >= p.preco_centavos) { btn.textContent = atual.id === p.id ? "Seu tier" : "Incluído no seu"; btn.disabled = true; }
+      const liberado = conta?.apoio_liberado_em && conta.apoio_liberado_em <= conta.agora + (Date.now() / 1000 - carregadoEm);
+      if (atual && jaTem >= p.preco_centavos && liberado && !temSuspenso && p.a_venda) {
+        btn.textContent = "Apoiar de novo";
+        btn.title = "Sem benefício novo: o item e o personagem são um por jogador.";
+        btn.addEventListener("click", () => comprar(p.id, btn));
+      } else if (atual && jaTem >= p.preco_centavos) {
+        btn.textContent = atual.id === p.id ? "Seu tier" : "Incluído no seu";
+        btn.disabled = true;
+        if (conta?.apoio_liberado_em) btn.title = `Pode apoiar de novo a partir de ${new Date(conta.apoio_liberado_em * 1000).toLocaleDateString("pt-BR")}.`;
+      }
       else if (temSuspenso) { btn.textContent = "Em análise"; btn.disabled = true; }
       else if (!p.a_venda) { btn.textContent = "Indisponível"; btn.disabled = true; }
       else if (!conta) { btn.textContent = "Vincule a conta"; btn.disabled = true; }
@@ -178,7 +189,7 @@
 
   async function carregarConta() {
     if (!localStorage.getItem(CHAVE_SESSAO)) { conta = null; return; }
-    try { conta = await api("/api/conta"); } catch { conta = null; }
+    try { conta = await api("/api/conta"); carregadoEm = Date.now() / 1000; } catch { conta = null; }
   }
 
   function mostrarConta() {
