@@ -534,3 +534,8 @@ html[data-motion="off"] .reveal-ready { opacity: 1; translate: none; }
 .supporters-tier li { padding: 6px 12px; border: 2px solid var(--border2); background: rgba(255, 255, 255, .03); font-size: 13px; }
 .supporters-tier-1 li { border-color: var(--yellow); color: var(--yellow); }
 .supporters-tier-2 li { border-color: var(--purple); }
+
+/* Ícones das moedas (Iris, Prisma): arte nativa 16x16, exibida só em múltiplos inteiros (32, 48, 64 px) e sem suavização. */
+.moeda-icone { display: inline-block; width: 32px; height: 32px; vertical-align: middle; image-rendering: pixelated; image-rendering: crisp-edges; }
+.moeda-icone[data-tamanho="3"] { width: 48px; height: 48px; }
+.moeda-icone[data-tamanho="4"] { width: 64px; height: 64px; }

@@ -35,6 +35,14 @@ window.ASTRAL_CONFIG = {
     apiUrl: "https://astral-loja.3237049369557647.workers.dev",
   },
 
+  // Moedas do servidor: ícones definitivos Iris I1 "Cunhada" e Prisma P1 "Cristal" (My Melody), 16x16 pixel art nativo.
+  // Exiba só em múltiplos inteiros (32, 48, 64 px) com a classe .moeda-icone; não redimensione o arquivo.
+  // Nenhuma página usa isto ainda: a loja de Prisma depende de preços de cosméticos e regras ainda não definidos.
+  moedas: {
+    iris: {nome: "Iris", icone: "artes/moedas/moeda_iris.png"},
+    prisma: {nome: "Prisma", icone: "artes/moedas/moeda_prisma.png"},
+  },
+
   // Link de convite da comunidade no Discord (opcional, deixe "" para esconder o botão)
   discordInviteUrl: "https://discord.gg/shrznbFeM",
 

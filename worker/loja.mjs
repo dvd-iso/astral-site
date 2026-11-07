@@ -9,6 +9,9 @@
 // - O servidor do jogo recebe só ações fechadas (liberar, suspender, revogar) de produtos cadastrados.
 // - Vendas reais exigem LOJA_MODO=real, LOJA_VENDAS_REAIS=sim e preco_confirmado=1 no produto.
 
+import {criarPrisma, prismaAtivo} from "./prisma.mjs";
+import {criarRecompensas} from "./recompensas.mjs";
+
 const enc = new TextEncoder();
 const MP_API = "https://api.mercadopago.com";
 const LIMITE_CORPO = 16 * 1024;
@@ -453,6 +456,8 @@ export async function sincronizarPagamento(env, pagamentoId, origem, jaLido = nu
   const id = String(p.id ?? pagamentoId);
   const t = agora();
   const ref = String(p.external_reference ?? "");
+  // Pacote de Prisma (moeda premium, módulo isolado). Sem PRISMA_ATIVO este desvio nunca acontece.
+  if (ref.startsWith("prisma:") && prismaAtivo(env)) return prisma.sincronizarPagamento(env, p, origem);
   let pedido = ref && !ref.startsWith("assinatura:") ? await env.DB.prepare("SELECT * FROM pedidos WHERE id = ?").bind(ref).first() : null;
   let assinatura = null;
   if (!pedido) {
@@ -620,7 +625,7 @@ async function conta(env, s) {
     `SELECT d.produto_id, p.nome, d.estado, d.atualizado_em FROM direitos d JOIN produtos p ON p.id = d.produto_id WHERE d.uuid = ? ORDER BY p.ordem`)
     .bind(s.uuid).all();
   const pedidos = await env.DB.prepare(
-    `SELECT id, produto_id, valor_centavos, moeda, modo, estado, criado_em FROM pedidos WHERE uuid = ? ORDER BY criado_em DESC LIMIT 10`)
+    `SELECT id, produto_id, valor_centavos, moeda, modo, estado, criado_em FROM pedidos WHERE uuid = ? AND moeda = 'BRL' ORDER BY criado_em DESC LIMIT 10`)
     .bind(s.uuid).all();
   const soma = await somaDoApoio(env, s.uuid);
   const assinatura = await env.DB.prepare(
@@ -763,19 +768,36 @@ async function webhook(req, env, url) {
 
 // ---------- rotas do servidor do jogo (HMAC + nonce) ----------
 
+/**
+ * Contrato plugin ↔ Worker. Contrato 1 (plugin AstralLoja 0.1/0.2): sem cabeçalho. Contrato 2 (Astral Economic): pode enviar
+ * `X-Astral-Contrato: 2`; o valor ENTRA na assinatura (linha extra "contrato:2" no fim do canônico), então não dá para
+ * remover nem acrescentar o cabeçalho sem invalidar a chamada. Sem o cabeçalho o canônico é o de sempre (compatível).
+ * O cabeçalho é OPCIONAL e hoje só serve para a fila de entregas: nenhuma rota é recusada por falta dele (as rotas novas de
+ * Prisma e recompensas só são chamadas pelo plugin novo). Ele passa a importar no dia em que existir uma ação NOVA de
+ * entrega: registre-a em ACAO_CONTRATO_MINIMO com contrato ≥ 2 e o plugin legado nunca a recebe.
+ */
+export const CONTRATO_ATUAL = 2;
+// Primeiro contrato que entende cada ação de entrega. Ação fora da tabela não é entregue a ninguém (falha segura): ao
+// criar uma ação nova, registre aqui com o contrato mínimo (2 ou mais) para plugin legado nunca recebê-la.
+const ACAO_CONTRATO_MINIMO = {liberar: 1, suspender: 1, revogar: 1};
+export const acoesEntregaveis = contrato => Object.entries(ACAO_CONTRATO_MINIMO).filter(([, min]) => min <= contrato).map(([a]) => a);
+
 export async function autenticarServidor(req, env, corpo) {
   const segredo = env.SERVIDOR_SEGREDO;
   const ts = req.headers.get("X-Astral-Ts") || "";
   const nonce = req.headers.get("X-Astral-Nonce") || "";
   const assinatura = (req.headers.get("X-Astral-Assinatura") || "").toLowerCase();
+  const declarado = req.headers.get("X-Astral-Contrato");
   if (!segredo || segredo.length < 32) throw new Erro(503, "servidor_nao_configurado");
+  if (declarado !== null && !/^[1-9]\d{0,2}$/.test(declarado)) throw new Erro(400, "contrato_invalido");
   if (!/^\d{9,11}$/.test(ts) || Math.abs(agora() - Number(ts)) > 300) throw new Erro(401, "horario_invalido");
   if (!/^[A-Za-z0-9_-]{16,64}$/.test(nonce)) throw new Erro(401, "nonce_invalido");
   const url = new URL(req.url);
-  const canonico = `${req.method}\n${url.pathname}${url.search}\n${ts}\n${nonce}\n${await sha256hex(corpo)}`;
+  const canonico = `${req.method}\n${url.pathname}${url.search}\n${ts}\n${nonce}\n${await sha256hex(corpo)}` + (declarado !== null ? `\ncontrato:${declarado}` : "");
   if (!iguais(await hmacHex(segredo, canonico), assinatura)) throw new Erro(401, "assinatura_invalida");
   const r = await env.DB.prepare("INSERT OR IGNORE INTO nonces (nonce, expira_em) VALUES (?, ?)").bind(nonce, agora() + 600).run();
   if (r.meta.changes !== 1) throw new Erro(401, "repeticao");
+  return {contrato: declarado === null ? 1 : Number(declarado)};
 }
 
 async function vinculosPendentes(env) {
@@ -805,14 +827,17 @@ async function recusarVinculo(env, id) {
   return {ok: true};
 }
 
-async function reservarEntregas(env) {
+async function reservarEntregas(env, contrato) {
   const t = agora();
+  // Só reserva ações que o contrato do cliente entende; as demais ficam pendentes, intactas (sem gastar tentativa).
+  const acoes = acoesEntregaveis(contrato);
+  const marcas = acoes.map((_, i) => `?${i + 2}`).join(", ");
   // A própria próxima tentativa funciona como reserva: só volta à fila se não for confirmada até lá.
   const {results} = await env.DB.prepare(
     `UPDATE entregas SET tentativas = tentativas + 1, reservada_ate = ?1,
        proxima_tentativa_em = ?1 + MAX(60, MIN(3600, 30 * (1 << MIN(tentativas, 7))))
-     WHERE id IN (SELECT id FROM entregas WHERE estado = 'pendente' AND proxima_tentativa_em <= ?1 ORDER BY criado_em LIMIT 50)
-     RETURNING id, uuid, produto_id, acao, versao, tentativas`).bind(t).all();
+     WHERE id IN (SELECT id FROM entregas WHERE estado = 'pendente' AND proxima_tentativa_em <= ?1 AND acao IN (${marcas}) ORDER BY criado_em LIMIT 50)
+     RETURNING id, uuid, produto_id, acao, versao, tentativas`).bind(t, ...acoes).all();
   return {entregas: results};
 }
 
@@ -879,6 +904,8 @@ export async function tarefas(env) {
   for (const {preapproval_id: pre} of vivas.results) {
     try { await sincronizarAssinatura(env, pre, "conciliacao"); conciliados++; } catch (e) { console.log("assinatura falhou", pre, e.codigo || e.message); }
   }
+  // 3b) Pacotes de Prisma (no-op sem PRISMA_ATIVO). Falha aqui não pode atrapalhar a conciliação de pets e apoios.
+  try { conciliados += (await prisma.tarefas(env)).conciliados; } catch (e) { console.log("prisma falhou", e.codigo || e.message); }
   // 4) Pedidos abandonados há mais de 3 dias viram expirados (um pagamento tardio ainda libera pelo webhook).
   await env.DB.prepare("UPDATE pedidos SET estado = 'expirado', atualizado_em = ? WHERE estado IN ('criado', 'aguardando_pagamento') AND expira_em < ?")
     .bind(t, t - 2 * 86400).run();
@@ -910,18 +937,24 @@ export async function handle(req, env) {
     } else if (caminho === "/api/pedidos" && req.method === "POST") r = await criarPedido(req, env, await sessao(req, env));
     else if (caminho === "/api/assinaturas" && req.method === "POST") r = await criarAssinatura(req, env, await sessao(req, env));
     else if ((m = /^\/api\/assinaturas\/([0-9a-f-]{36})\/cancelar$/.exec(caminho)) && req.method === "POST") r = await cancelarAssinatura(env, await sessao(req, env), m[1]);
+    else if (caminho.startsWith("/api/prisma")) r = await prisma.rotaSite(req, env, caminho);
     else if (caminho === "/api/mural" && req.method === "POST") r = await mudarMural(req, env, await sessao(req, env));
     else if ((m = /^\/api\/pedidos\/([0-9a-f-]{36})$/.exec(caminho)) && req.method === "GET") r = await verPedido(env, await sessao(req, env), m[1]);
     else if (caminho === "/webhooks/mercadopago" && req.method === "POST") return await webhook(req, env, url);
     else if (caminho.startsWith("/servidor/")) {
       const corpo = await lerCorpo(req);
-      await autenticarServidor(req, env, corpo);
+      const servidor = await autenticarServidor(req, env, corpo);
       if (caminho === "/servidor/vinculos" && req.method === "GET") r = await vinculosPendentes(env);
       else if ((m = /^\/servidor\/vinculos\/([0-9a-f-]{36})\/codigo$/.exec(caminho)) && req.method === "POST") r = await registrarCodigo(env, m[1], corpo);
       else if ((m = /^\/servidor\/vinculos\/([0-9a-f-]{36})\/recusar$/.exec(caminho)) && req.method === "POST") r = await recusarVinculo(env, m[1]);
-      else if (caminho === "/servidor/entregas" && req.method === "POST") r = await reservarEntregas(env);
+      else if (caminho === "/servidor/entregas" && req.method === "POST") r = await reservarEntregas(env, servidor.contrato);
       else if (caminho === "/servidor/entregas/confirmar" && req.method === "POST") r = await confirmarEntregas(env, corpo);
       else if (caminho === "/servidor/direitos" && req.method === "GET") r = await direitosAtuais(env);
+      else if (caminho === "/servidor/contrato" && req.method === "GET") {
+        // Para o plugin saber o que o Worker oferece sem tentar às cegas (interruptores e versão do contrato).
+        r = {contrato: servidor.contrato, contrato_atual: CONTRATO_ATUAL, prisma: prismaAtivo(env), prisma_gastos: env.PRISMA_GASTOS_ATIVO === "sim", recompensas: env.RECOMPENSAS_ATIVO === "sim"};
+      } else if (caminho.startsWith("/servidor/prisma/")) r = await prisma.rotaServidor(req, env, caminho, corpo);
+      else if (caminho.startsWith("/servidor/recompensas/")) r = await recompensas.rotaServidor(req, env, caminho, corpo);
       else throw new Erro(404, "rota_inexistente");
     } else throw new Erro(404, "rota_inexistente");
     return json(r, 200, cors);
@@ -931,6 +964,10 @@ export async function handle(req, env) {
     return json({erro: "interno"}, 500, cors);
   }
 }
+
+// Prisma: dependências injetadas para o módulo não importar este arquivo (sem ciclo). Veja docs/prisma.md.
+const prisma = criarPrisma({Erro, lerJson, lerCorpo, limitar, mp, salvarPagamento, registrarEvento, conferirPagamento, centavos, modoDaLoja, bloqueioDeVenda, agora, sessao, aplicarDireito});
+const recompensas = criarRecompensas({Erro, lerJson, agora, saldoDe: prisma.saldoDe, prismaAtivo});
 
 export default {
   fetch: (req, env) => handle(req, env),
