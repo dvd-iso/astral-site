@@ -9,7 +9,7 @@
   <title>Início — Astral</title>
   <meta name="description" content="Astral: sobrevivência com base vanilla, foco social e RPG. Explore um mundo com lore própria e construa histórias e memórias em comunidade." />
   <link rel="preload" href="fonts/Monocraft.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="style.css?v=29" />
+  <link rel="stylesheet" href="style.css?v=30" />
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
 </head>
 <body data-page="inicio" data-page-title="Início">
@@ -88,18 +88,22 @@
       <div class="support-copy">
         <p class="eyebrow"><svg class="pixel-icon" aria-hidden="true" focusable="false"><use href="icons.svg#spark" /></svg>Feito em comunidade</p>
         <h2 id="supportTitle">Ajude o Astral a continuar criando memórias.</h2>
-        <p>Seu apoio mantém o servidor no ar e ajuda a desenvolver o projeto. São três tiers, de R$ 20, R$ 50 e R$ 100: cargo e ícone de apoiador, um item sob medida na lore e até um personagem seu na história do Astral. Apoie de uma vez ou todo mês: tudo soma para o tier.</p>
+        <p>Seu apoio mantém o servidor no ar e ajuda a desenvolver o projeto. Estrela: R$ 20 e 200 Prisma. Constelação: R$ 50 e 600 Prisma. Galáxia: R$ 100 e 1200 Prisma. Cada novo apoio pago concede novamente; no upgrade, você paga e recebe só a diferença entre os tiers. Pagamento único por Pix ou cartão, com cargo, ícone de apoiador e mural: tudo soma para o tier.</p>
       </div>
       <div class="support-action">
         <a class="btn support-button" href="loja.html#apoio">Ver os tiers de apoio</a>
         <p class="support-note">Pix ou cartão pelo Mercado Pago. O tier alcançado é seu para sempre.</p>
+        <a class="support-note" href="#apoiadores">Ver apoiadores</a>
       </div>
     </section>
 
-    <section class="block supporters" id="apoiadores" aria-labelledby="supportersTitle" data-supporters hidden>
+    <section class="block supporters" id="apoiadores" aria-labelledby="supportersTitle" data-supporters aria-busy="true">
       <header class="block-head"><h2 id="supportersTitle"><svg class="pixel-icon section-icon" aria-hidden="true" focusable="false"><use href="icons.svg#spark" /></svg>Apoiadores</h2></header>
       <p class="muted">Quem ajuda o Astral a continuar existindo. Obrigado!</p>
+      <p class="muted" role="status" aria-live="polite" data-supporters-status>Carregando apoiadores…</p>
       <div class="supporters-tiers" data-supporters-list></div>
+      <button class="text-button" type="button" data-supporters-retry hidden>Tentar novamente</button>
+      <noscript><p class="muted">Ative o JavaScript para consultar o mural público.</p></noscript>
     </section>
   </main>
 
@@ -113,7 +117,7 @@
   </footer>
 
   <script src="config.js?v=28"></script>
-  <script src="mural.js?v=1" defer></script>
+  <script src="mural.js?v=2" defer></script>
   <script src="app.js?v=24"></script>
 </body>
 </html>

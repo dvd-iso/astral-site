@@ -519,6 +519,8 @@ html[data-motion="off"] .reveal-ready { opacity: 1; translate: none; }
 .tier-grid { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
 .tier-perks { margin: 0 0 14px; padding-left: 18px; color: var(--muted); font-size: 13px; }
 .tier-perks li { margin: 4px 0; }
+.tier-card .tier-effective { margin: auto 0 8px; color: var(--yellow); font-size: 12px; line-height: 1.6; }
+.tier-card .tier-effective + .btn { margin-top: 0; }
 .shop-card:hover .shop-pet img { transform: translateY(-4px) rotate(-2deg); }
 @media (prefers-reduced-motion: reduce) { .shop-card:hover .shop-pet img { transform: none; } }
 .shop-price { margin: 6px 0 14px; color: var(--yellow); font-weight: 700; }

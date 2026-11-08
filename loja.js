@@ -13,7 +13,6 @@
   let catalogo = [];
   let catalogoFalhou = false;
   let conta = null;
-  let carregadoEm = 0;
   let espera = null;
 
   const MENSAGENS = {
@@ -24,11 +23,8 @@
     vinculo_expirado: "O pedido expirou. Comece de novo.",
     vinculo_recusado: "O pedido foi recusado dentro do jogo.",
     ja_possui: "Você já tem este item.",
-    email_invalido: "Confira o e-mail: use o mesmo da sua conta do Mercado Pago.",
-    ja_assina: "Você já tem um apoio mensal. Cancele o atual para trocar de valor.",
-    assinatura_indisponivel: "Não foi possível abrir a assinatura agora. Tente de novo em instantes.",
+    novas_assinaturas_encerradas: "Novos apoios são de pagamento único. Assinaturas antigas continuam disponíveis para gestão e cancelamento.",
     mercado_pago_indisponivel: "O Mercado Pago não respondeu. Tente de novo em instantes.",
-    apoio_recente: "Você apoiou há menos de um mês. Depois disso, pode apoiar de novo.",
     apoio_em_disputa: "Um apoio seu está em contestação. Espere a decisão para subir de tier.",
     vendas_reais_desativadas: "As vendas ainda não estão abertas.",
     preco_nao_confirmado: "As vendas ainda não estão abertas.",
@@ -74,23 +70,16 @@
     return catalogo.filter(p => p.tipo === "apoio" && ativos.has(p.id)).sort((a, b) => b.preco_centavos - a.preco_centavos)[0] || null;
   }
 
-  let modoApoio = "unico";
-
   function desenharApoio() {
     const grade = $("[data-apoio]");
-    if (!grade || catalogoFalhou) return;
+    if (!grade) return;
     grade.replaceChildren();
     const atual = apoioAtual();
     const total = conta?.apoio_total || 0;
     const temSuspenso = (conta?.direitos || []).some(d => d.estado === "suspenso" && String(d.produto_id).startsWith("apoio_"));
     const tiers = catalogo.filter(p => p.tipo === "apoio" && p.ativo).sort((a, b) => a.preco_centavos - b.preco_centavos);
-    const mensais = catalogo.filter(p => p.tipo === "apoio_mensal" && p.ativo);
-    $("[data-apoio-secao]").hidden = !tiers.length;
-    const abas = $("[data-apoio-modos]");
-    abas.hidden = !mensais.length;
-    if (!mensais.length) modoApoio = "unico";
-    abas.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.modo === modoApoio)));
-    $("[data-apoio-email]").hidden = true;
+    // A gestão da assinatura antiga não depende de existirem tiers novos à venda.
+    $("[data-apoio-secao]").hidden = !tiers.length && !conta?.assinatura;
 
     // Resumo da conta: quanto já apoiou, próximo tier, assinatura e mural.
     const resumo = $("[data-apoio-resumo]");
@@ -111,7 +100,6 @@
     }
 
     for (const p of tiers) {
-      const mensal = mensais.find(m => m.preco_centavos === p.preco_centavos);
       const card = document.createElement("article");
       card.className = "feature shop-card tier-card" + (atual && atual.id === p.id ? " is-mine" : "");
       const topo = document.createElement("div");
@@ -125,7 +113,9 @@
       h.textContent = p.nome;
       const lista = document.createElement("ul");
       lista.className = "tier-perks";
-      for (const linha of String(p.descricao).split(/\.\s+|\.$/).filter(Boolean)) {
+      const ofertaPrisma = Number.isInteger(p.prisma_quantidade) && p.prisma_quantidade > 0;
+      const descricao = ofertaPrisma ? p.descricao : "A oferta de apoio está em atualização. Aguarde o novo catálogo.";
+      for (const linha of String(descricao).split(/\.\s+|\.$/).filter(Boolean)) {
         const li = document.createElement("li");
         li.textContent = linha.trim() + ".";
         lista.append(li);
@@ -134,61 +124,31 @@
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "btn";
-      if (modoApoio === "mensal" && mensal) {
-        valor.textContent = `${reais(mensal.preco_centavos)}/mês`;
-        if (conta?.assinatura && conta.assinatura.estado !== "pendente") { btn.textContent = conta.assinatura.produto_id === mensal.id ? "Sua assinatura" : "Já assina"; btn.disabled = true; }
-        else if (!mensal.a_venda) { btn.textContent = "Indisponível"; btn.disabled = true; }
-        else if (!conta) { btn.textContent = "Vincule a conta"; btn.disabled = true; }
-        else { btn.textContent = `Assinar ${reais(mensal.preco_centavos)}/mês`; btn.addEventListener("click", () => pedirEmail(mensal)); }
-      } else {
-        const falta = p.preco_centavos - total;
-        const liberado = conta?.apoio_liberado_em && conta.apoio_liberado_em <= conta.agora + (Date.now() / 1000 - carregadoEm);
-        if (falta <= 0 && liberado && !temSuspenso && p.a_venda) {
-          btn.textContent = "Apoiar de novo";
-          btn.title = "Soma para o seu tier. O item e o personagem são um por jogador.";
-          btn.addEventListener("click", () => comprar(p.id, btn));
-        } else if (falta <= 0) {
-          btn.textContent = atual && atual.id === p.id ? "Seu tier" : "Incluído no seu";
-          btn.disabled = true;
-          if (conta?.apoio_liberado_em) btn.title = `Pode apoiar de novo a partir de ${new Date(conta.apoio_liberado_em * 1000).toLocaleDateString("pt-BR")}.`;
-        } else if (temSuspenso) { btn.textContent = "Em análise"; btn.disabled = true; }
-        else if (!p.a_venda) { btn.textContent = "Indisponível"; btn.disabled = true; }
-        else if (!conta) { btn.textContent = "Vincule a conta"; btn.disabled = true; }
-        else {
-          btn.textContent = total ? `Completar com ${reais(falta)}` : "Apoiar";
-          btn.addEventListener("click", () => comprar(p.id, btn));
-        }
+      const falta = p.preco_centavos - total;
+      const tierBase = falta > 0 ? catalogo.filter(t => t.tipo === "apoio" && t.preco_centavos <= total)
+        .sort((a, b) => b.preco_centavos - a.preco_centavos)[0] : null;
+      const base = tierBase ? tierBase.prisma_quantidade : 0;
+      const quantidade = p.prisma_quantidade - base;
+      const ofertaCalculavel = ofertaPrisma && Number.isInteger(base) && base >= 0 && Number.isInteger(quantidade) && quantidade > 0;
+      if (temSuspenso) { btn.textContent = "Em análise"; btn.disabled = true; }
+      else if (!ofertaCalculavel) { btn.textContent = "Oferta em atualização"; btn.disabled = true; }
+      else if (!p.a_venda) { btn.textContent = "Indisponível"; btn.disabled = true; }
+      else if (!conta) { btn.textContent = "Vincule a conta"; btn.disabled = true; }
+      else {
+        btn.textContent = falta <= 0 ? "Apoiar de novo" : total ? `Completar com ${reais(falta)}` : "Apoiar";
+        btn.title = falta <= 0
+          ? `Novo pagamento único de ${reais(p.preco_centavos)}: recebe ${quantidade} Prisma novamente e soma para o tier.`
+          : `Pagamento único de ${reais(falta)}: recebe ${quantidade} Prisma${base ? " (diferença entre os tiers)" : ""} após confirmação.`;
+        btn.addEventListener("click", () => comprar(p.id, btn));
+      }
+      if (conta && ofertaCalculavel) {
+        const efetivo = document.createElement("p");
+        efetivo.className = "tiny tier-effective";
+        efetivo.textContent = `Neste pagamento: ${reais(falta > 0 ? falta : p.preco_centavos)} e ${quantidade} Prisma após confirmação.`;
+        card.append(efetivo);
       }
       card.append(btn);
       grade.append(card);
-    }
-  }
-
-  let mensalEscolhido = null;
-  function pedirEmail(mensal) {
-    erro(null);
-    mensalEscolhido = mensal;
-    const f = $("[data-apoio-email]");
-    $("[data-apoio-email-titulo]").textContent = `${mensal.nome}, cobrado todo mês no cartão.`;
-    f.hidden = false;
-    f.querySelector("input").focus();
-  }
-
-  async function assinar(ev) {
-    ev.preventDefault();
-    if (!mensalEscolhido) return;
-    erro(null);
-    const f = ev.currentTarget;
-    const btn = f.querySelector("button[type=submit]");
-    btn.disabled = true;
-    try {
-      const r = await api("/api/assinaturas", {metodo: "POST", corpo: {produto_id: mensalEscolhido.id, email: f.email.value.trim()}});
-      const url = new URL(r.checkout_url);
-      if (url.protocol !== "https:" || !/(^|\.)mercadopago\.com(\.br)?$/.test(url.hostname)) throw new Error("assinatura_indisponivel");
-      location.assign(url.href);
-    } catch (e) {
-      erro(e.codigo || "assinatura_indisponivel");
-      btn.disabled = false;
     }
   }
 
@@ -252,6 +212,7 @@
 
   async function comprar(produtoId, btn) {
     erro(null);
+    const textoAnterior = btn.textContent;
     btn.disabled = true;
     btn.textContent = "Abrindo pagamento…";
     try {
@@ -262,13 +223,13 @@
     } catch (e) {
       erro(e.codigo || "checkout_indisponivel");
       btn.disabled = false;
-      btn.textContent = "Comprar";
+      btn.textContent = textoAnterior;
     }
   }
 
   async function carregarConta() {
     if (!localStorage.getItem(CHAVE_SESSAO)) { conta = null; return; }
-    try { conta = await api("/api/conta"); carregadoEm = Date.now() / 1000; } catch { conta = null; }
+    try { conta = await api("/api/conta"); } catch { conta = null; }
   }
 
   function mostrarConta() {
@@ -362,10 +323,18 @@
   // ---------- andamento do pedido (volta do checkout) ----------
 
   const ESTADOS_APOIO = {
-    pago: "Pagamento confirmado! Obrigado por apoiar o Astral. O cargo chega no Discord em instantes; se o seu tier tem item ou personagem, a equipe vai falar com você por lá.",
-    em_disputa: "O pagamento está em contestação; os benefícios ficam suspensos até a decisão.",
-    reembolsado: "O pagamento foi reembolsado e os benefícios deste tier foram removidos.",
-    contestado: "O pagamento foi estornado e os benefícios deste tier foram removidos.",
+    pago: "Pagamento confirmado! Obrigado por apoiar o Astral. O cargo é atualizado no Discord da conta vinculada.",
+    em_disputa: "O pagamento está em contestação; o tier pode ficar suspenso. A Prisma disponível deste apoio é retida, sem dívida nem remoção de cosméticos; valores já gastos passam por análise da equipe.",
+    reembolsado: "O pagamento foi reembolsado e saiu da soma do apoio. A Prisma disponível deste pedido é revertida; o que já foi gasto vai para análise, sem dívida automática nem remoção de cosméticos.",
+    contestado: "O pagamento foi estornado e saiu da soma do apoio. A Prisma disponível deste pedido é revertida; o que já foi gasto vai para análise, sem dívida automática nem remoção de cosméticos.",
+    cancelado: "O pedido foi cancelado. Se já estava pago, a Prisma disponível é revertida e valores gastos passam por análise, sem dívida automática nem remoção de cosméticos.",
+  };
+  const ESTADOS_APOIO_LEGADO = {
+    ...ESTADOS_APOIO,
+    em_disputa: "O pagamento está em contestação; o tier pode ficar suspenso até a decisão.",
+    reembolsado: "O pagamento foi reembolsado e saiu da soma do apoio. O tier é atualizado conforme o total restante.",
+    contestado: "O pagamento foi estornado e saiu da soma do apoio. O tier é atualizado conforme o total restante.",
+    cancelado: "O pedido foi cancelado. Se já estava pago, o valor sai da soma do apoio.",
   };
   const ESTADOS = {
     criado: "Aguardando o pagamento.",
@@ -387,8 +356,10 @@
     if (!localStorage.getItem(CHAVE_SESSAO)) { status.textContent = "Vincule a conta para ver o pedido. Se você pagou, tudo será liberado mesmo assim."; return; }
     try {
       const p = await api(`/api/pedidos/${id}`);
-      const textos = String(p.produto_id).startsWith("apoio_") ? {...ESTADOS, ...ESTADOS_APOIO} : ESTADOS;
+      const textos = String(p.produto_id).startsWith("apoio_")
+        ? {...ESTADOS, ...(p.prisma_quantidade > 0 ? ESTADOS_APOIO : ESTADOS_APOIO_LEGADO)} : ESTADOS;
       status.textContent = `${p.produto} · ${reais(p.valor_centavos)} — ${textos[p.estado] || p.estado}`;
+      if (p.estado === "pago" && p.prisma_quantidade > 0) status.textContent += ` ${p.prisma_quantidade} Prisma creditada na sua conta. Reembolso parcial mantém a Prisma e passa por análise.`;
       if (["criado", "aguardando_pagamento"].includes(p.estado) && tentativas < 40) setTimeout(() => acompanharPedido(id, tentativas + 1), 4000);
       if (p.estado === "pago") { await carregarConta(); mostrarConta(); desenharCatalogo(); }
     } catch {
@@ -420,13 +391,10 @@
     const assinatura = new URLSearchParams(location.search).get("assinatura");
     if (assinatura && /^[0-9a-f-]{36}$/.test(assinatura)) {
       $("[data-shop-order]").hidden = false;
-      $("[data-order-status]").textContent = "Assinatura enviada ao Mercado Pago. Quando o primeiro mês for cobrado, ele soma para o seu tier e o cargo chega no Discord. Pode levar alguns minutos.";
+      $("[data-order-status]").textContent = "Novas assinaturas foram encerradas. Se você já tinha uma, as cobranças continuam somando para o tier e podem ser geridas ou canceladas na sua conta. Nenhuma assinatura antiga foi cancelada automaticamente.";
     }
   }
 
-  document.querySelectorAll("[data-apoio-modos] button").forEach(b => b.addEventListener("click", () => { modoApoio = b.dataset.modo; desenharApoio(); }));
-  $("[data-apoio-email]").addEventListener("submit", assinar);
-  $("[data-apoio-email-cancelar]").addEventListener("click", () => { $("[data-apoio-email]").hidden = true; });
   $("[data-assinatura-cancelar]").addEventListener("click", ev => cancelarAssinatura(ev.currentTarget));
   $("[data-mural]").addEventListener("change", async ev => {
     const caixa = ev.currentTarget;

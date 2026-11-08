@@ -1,10 +1,11 @@
 // Testes da loja: node --test worker/test/loja.test.mjs (Node 22.13+). Sem rede: o Mercado Pago é simulado.
 import assert from "node:assert/strict";
 import test from "node:test";
+import {readFileSync} from "node:fs";
 import {fileURLToPath} from "node:url";
 import {dirname, join} from "node:path";
 import {criarD1} from "./d1-sqlite.mjs";
-import {handle, tarefas, assinaturaMercadoPagoValida, hmacHex, sha256hex, agora, conferirPagamento} from "../loja.mjs";
+import {handle, tarefas, sincronizarPagamento, assinaturaMercadoPagoValida, hmacHex, sha256hex, agora, conferirPagamento} from "../loja.mjs";
 
 const PASTA = join(dirname(fileURLToPath(import.meta.url)), "..", "migrations", "loja");
 const BASE = "https://astral-loja.example";
@@ -441,7 +442,7 @@ test("CORS só para o site; sem sessão não há conta nem pedido", async () => 
 
 // ---------- apoio ----------
 
-test("apoio: tiers começam desligados, sobem pagando só a diferença e não se repetem", async () => {
+test("apoio: tiers começam desligados, upgrade cobra e credita só a diferença; novo apoio pode se repetir", async () => {
   const {env, mp} = ambiente();
   const token = await vincular(env);
   const auth = {Authorization: `Bearer ${token}`};
@@ -460,7 +461,8 @@ test("apoio: tiers começam desligados, sobem pagando só a diferença e não se
   await notificar(env, 2001);
   assert.equal(linha(env, "SELECT estado FROM direitos WHERE produto_id = 'apoio_20'").estado, "ativo");
 
-  assert.equal((await pedir("apoio_20")).dados.erro, "apoio_recente");
+  assert.equal((await pedir("apoio_20")).status, 200);
+  assert.equal(linha(env, "SELECT SUM(quantidade) AS s FROM prisma_lancamentos").s, 200);
   const p50 = await pedir("apoio_50");
   assert.equal(p50.status, 200);
   assert.equal(linha(env, "SELECT valor_centavos FROM pedidos WHERE id = ?", p50.dados.pedido_id).valor_centavos, 3000, "só a diferença");
@@ -472,10 +474,11 @@ test("apoio: tiers começam desligados, sobem pagando só a diferença e não se
   mp.pagar(2003, p50.dados.pedido_id, {transaction_amount: 30});
   await notificar(env, 2003);
   assert.equal(linha(env, "SELECT estado FROM direitos WHERE produto_id = 'apoio_50'").estado, "ativo");
+  assert.equal(linha(env, "SELECT SUM(quantidade) AS s FROM prisma_lancamentos").s, 600, "200 + 400, não 200 + 600");
 
-  // Ter o 50 bloqueia o 20 e o 50; o 100 sai por 50.
-  assert.equal((await pedir("apoio_20")).dados.erro, "apoio_recente");
-  assert.equal((await pedir("apoio_50")).dados.erro, "apoio_recente");
+  // Ter o 50 permite novo apoio integral; o upgrade para 100 sai por 50.
+  assert.equal((await pedir("apoio_20")).status, 200);
+  assert.equal((await pedir("apoio_50")).status, 200);
   const p100 = await pedir("apoio_100");
   assert.equal(linha(env, "SELECT valor_centavos FROM pedidos WHERE id = ?", p100.dados.pedido_id).valor_centavos, 5000);
 
@@ -489,7 +492,7 @@ test("apoio: tiers começam desligados, sobem pagando só a diferença e não se
   assert.deepEqual(e.dados.entregas.map(x => `${x.produto_id}:${x.acao}`).sort(), ["apoio_20:liberar", "apoio_50:suspender"]);
 });
 
-test("apoio: um mês depois do último apoio pago, pode apoiar de novo pelo valor cheio, e isso soma", async () => {
+test("apoio: repetir sem carência cobra valor cheio, concede quantidade cheia e soma para o tier", async () => {
   const {env, mp} = ambiente();
   const token = await vincular(env);
   const auth = {Authorization: `Bearer ${token}`};
@@ -499,14 +502,7 @@ test("apoio: um mês depois do último apoio pago, pode apoiar de novo pelo valo
   mp.pagar(3001, p50.dados.pedido_id, {transaction_amount: 50});
   await notificar(env, 3001);
 
-  const cedo = await pedir("apoio_50");
-  assert.equal(cedo.status, 409);
-  assert.equal(cedo.dados.erro, "apoio_recente");
-  assert.ok(cedo.dados.liberado_em > agora() + 29 * 86400, "a página sabe quando libera");
-  assert.equal((await site(env, "GET", "/api/conta", undefined, auth)).dados.apoio_liberado_em, cedo.dados.liberado_em);
-
-  // Passa um mês.
-  env.DB.sqlite.exec(`UPDATE pedidos SET criado_em = criado_em - ${31 * 86400}`);
+  assert.equal((await site(env, "GET", "/api/conta", undefined, auth)).dados.apoio_liberado_em, 1, "compatibilidade com página antiga: truthy e no passado, sem carência");
   const de20 = await pedir("apoio_20");
   assert.equal(de20.status, 200);
   assert.equal(linha(env, "SELECT valor_centavos FROM pedidos WHERE id = ?", de20.dados.pedido_id).valor_centavos, 2000, "valor cheio");
@@ -516,36 +512,41 @@ test("apoio: um mês depois do último apoio pago, pode apoiar de novo pelo valo
   const de100 = await pedir("apoio_100");
   assert.equal(linha(env, "SELECT valor_centavos FROM pedidos WHERE id = ?", de100.dados.pedido_id).valor_centavos, 5000);
 
-  // Pagar o 50 de novo soma: 50 + 50 = 100 chega à Galáxia (item e personagem seguem um por jogador).
+  // Pagar o 50 de novo soma: 50 + 50 = 100 chega à Galáxia, sem crédito extra pelo tier acumulado.
   mp.pagar(3002, de50.dados.pedido_id, {transaction_amount: 50});
   await notificar(env, 3002);
   assert.equal(linha(env, "SELECT estado FROM pedidos WHERE id = ?", de50.dados.pedido_id).estado, "pago");
   assert.equal(linha(env, "SELECT estado FROM direitos WHERE produto_id = 'apoio_100'").estado, "ativo");
-  // E o relógio recomeça: agora precisa esperar outro mês.
-  assert.equal((await pedir("apoio_20")).dados.erro, "apoio_recente");
+  assert.equal(linha(env, "SELECT SUM(quantidade) AS s FROM prisma_lancamentos").s, 1200);
+  assert.equal((await pedir("apoio_20")).status, 200);
 });
 
-test("apoio mensal: assinatura no cartão, cada mês soma para o tier, reembolso tira, cancelamento pelo site", async () => {
+test("apoio mensal legado: novas assinaturas bloqueadas; meses somam, reembolso e cancelamento preservados", async () => {
   const {env, mp} = ambiente();
   const token = await vincular(env);
   const auth = {Authorization: `Bearer ${token}`};
   env.DB.sqlite.exec("UPDATE produtos SET ativo = 1 WHERE tipo IN ('apoio', 'apoio_mensal')");
-  assert.equal((await site(env, "POST", "/api/assinaturas", {produto_id: "apoio_mensal_20", email: "sem-arroba"}, auth)).dados.erro, "email_invalido");
-  const nova = await site(env, "POST", "/api/assinaturas", {produto_id: "apoio_mensal_20", email: "fulano@example.com"}, auth);
-  assert.equal(nova.status, 200, JSON.stringify(nova.dados));
-  assert.match(nova.dados.checkout_url, /^https:\/\/www\.mercadopago\.com\.br\/subscriptions/);
-  const pre = mp.chamadas.find(c => c.caminho === "/preapproval").corpo;
-  assert.equal(pre.auto_recurring.transaction_amount, 20);
-  assert.equal(pre.external_reference, `assinatura:${nova.dados.assinatura_id}`);
-  assert.equal(linhas(env, "SELECT * FROM assinaturas WHERE preapproval_id = 'pre1'").length, 1);
-  assert.ok(!JSON.stringify(linhas(env, "SELECT * FROM assinaturas")).includes("fulano"), "o e-mail não é gravado");
+  for (const corpo of [{produto_id: "apoio_mensal_20", email: "fulano@example.com"}, {}, {email: "sem-arroba"}]) {
+    const bloqueada = await site(env, "POST", "/api/assinaturas", corpo, auth);
+    assert.equal(bloqueada.status, 403);
+    assert.equal(bloqueada.dados.erro, "novas_assinaturas_encerradas");
+  }
+  assert.equal((await site(env, "POST", "/api/pedidos", {produto_id: "apoio_mensal_20"}, auth)).dados.erro, "novas_assinaturas_encerradas", "API antiga não contorna a rota bloqueada");
+  assert.ok(!(await site(env, "GET", "/api/catalogo")).dados.produtos.some(p => p.tipo === "apoio_mensal"));
+  assert.ok(!mp.chamadas.some(c => c.caminho === "/preapproval"));
+  // Fixture de assinatura já existente, nunca criada pela API nova.
+  const assinaturaId = crypto.randomUUID();
+  env.DB.sqlite.prepare(`INSERT INTO assinaturas (id, uuid, produto_id, valor_centavos, modo, estado, preapproval_id, criado_em, atualizado_em)
+    VALUES (?, ?, 'apoio_mensal_20', 2000, 'teste', 'pendente', 'pre1', ?, ?)`).run(assinaturaId, UUID_JOGADOR, agora(), agora());
+  mp.assinaturas.set("pre1", {id: "pre1", status: "pending", collector_id: Number(RECEBEDOR), external_reference: `assinatura:${assinaturaId}`, auto_recurring: {transaction_amount: 20}});
 
   // Autorizada no checkout.
   mp.assinaturas.get("pre1").status = "authorized";
   const n1 = await notificar(env, "pre1", {tipo: "subscription_preapproval"});
   assert.equal(n1.status, 200);
   assert.equal(linha(env, "SELECT estado FROM assinaturas").estado, "autorizada");
-  assert.equal((await site(env, "POST", "/api/assinaturas", {produto_id: "apoio_mensal_50", email: "fulano@example.com"}, auth)).dados.erro, "ja_assina");
+  assert.equal((await site(env, "POST", "/api/assinaturas", {produto_id: "apoio_mensal_50", email: "fulano@example.com"}, auth)).dados.erro, "novas_assinaturas_encerradas");
+  assert.equal(linha(env, "SELECT estado FROM assinaturas").estado, "autorizada", "tentativa nova não cancela a antiga");
 
   // Mês 1 pela notificação da cobrança: Estrela.
   mp.cobrar(7001, "pre1", 8001);
@@ -565,6 +566,7 @@ test("apoio mensal: assinatura no cartão, cada mês soma para o tier, reembolso
   const c = await site(env, "GET", "/api/conta", undefined, auth);
   assert.equal(c.dados.apoio_total, 6000);
   assert.equal(c.dados.assinatura.estado, "autorizada");
+  assert.equal(linhas(env, "SELECT * FROM prisma_lancamentos").length, 0, "mensal legado não recebe Prisma automaticamente");
   // Avulso para a Galáxia cobra só o que falta: 100 − 60.
   const falta = await site(env, "POST", "/api/pedidos", {produto_id: "apoio_100"}, auth);
   assert.equal(linha(env, "SELECT valor_centavos FROM pedidos WHERE id = ?", falta.dados.pedido_id).valor_centavos, 4000);
@@ -581,7 +583,7 @@ test("apoio mensal: assinatura no cartão, cada mês soma para o tier, reembolso
   assert.equal(linha(env, "SELECT estado FROM direitos WHERE produto_id = 'apoio_20'").estado, "ativo");
 
   // Cancelar pelo site cancela no Mercado Pago. O tier alcançado fica.
-  const cancelar = await site(env, "POST", `/api/assinaturas/${nova.dados.assinatura_id}/cancelar`, {}, auth);
+  const cancelar = await site(env, "POST", `/api/assinaturas/${assinaturaId}/cancelar`, {}, auth);
   assert.equal(cancelar.status, 200);
   assert.equal(mp.assinaturas.get("pre1").status, "cancelled");
   assert.equal(linha(env, "SELECT estado FROM direitos WHERE produto_id = 'apoio_20'").estado, "ativo");
@@ -605,4 +607,370 @@ test("mural: mostra o nick e o maior tier, do maior para o menor; o jogador pode
   assert.equal((await site(env, "POST", "/api/mural", {visivel: false}, {Authorization: `Bearer ${b}`})).status, 200);
   assert.deepEqual((await site(env, "GET", "/api/apoiadores")).dados.apoiadores, [{nome: "dvdiso", tier: "Estrela"}]);
   assert.equal((await site(env, "GET", "/api/conta", undefined, {Authorization: `Bearer ${b}`})).dados.mural_visivel, false);
+});
+
+// ---------- apoio com Prisma (mesmo saldo do jogo, MP simulado) ----------
+
+const saldoPrisma = env => linha(env, "SELECT COALESCE(SUM(quantidade), 0) AS saldo FROM prisma_lancamentos WHERE uuid = ?", UUID_JOGADOR).saldo;
+async function apoioNovo(extra = {}, produto = "apoio_20") {
+  const a = ambiente({PRISMA_ATIVO: "sim", ...extra});
+  a.env.DB.sqlite.exec("UPDATE produtos SET ativo = 1 WHERE tipo = 'apoio'");
+  a.token = await vincular(a.env);
+  a.auth = {Authorization: `Bearer ${a.token}`};
+  a.pedir = id => site(a.env, "POST", "/api/pedidos", {produto_id: id}, a.auth);
+  const r = await a.pedir(produto);
+  assert.equal(r.status, 200, JSON.stringify(r.dados));
+  a.pedidoId = r.dados.pedido_id;
+  return a;
+}
+
+test("apoio Prisma: snapshots de catálogo, upgrade e recompra; retorno e preço do cliente não concedem", async () => {
+  const {env, mp, pedidoId, pedir, auth} = await apoioNovo();
+  assert.equal(saldoPrisma(env), 0);
+  assert.deepEqual(linha(env, "SELECT prisma_quantidade, prisma_base_quantidade FROM pedidos WHERE id = ?", pedidoId), {prisma_quantidade: 200, prisma_base_quantidade: 0});
+  await site(env, "GET", `/api/pedidos/${pedidoId}`, undefined, auth);
+  assert.equal(saldoPrisma(env), 0, "retorno nunca credita");
+  mp.pagar(10001, pedidoId, {transaction_amount: 20});
+  await notificar(env, 10001);
+  const upgrade = await pedir("apoio_50");
+  assert.deepEqual(linha(env, "SELECT valor_centavos, prisma_quantidade, prisma_base_quantidade FROM pedidos WHERE id = ?", upgrade.dados.pedido_id),
+    {valor_centavos: 3000, prisma_quantidade: 400, prisma_base_quantidade: 200});
+  env.DB.sqlite.exec("UPDATE produtos SET prisma_quantidade = 9999 WHERE id = 'apoio_50'");
+  mp.pagar(10002, upgrade.dados.pedido_id, {transaction_amount: 30});
+  for (let i = 0; i < 3; i++) await notificar(env, 10002);
+  assert.equal(saldoPrisma(env), 600, "editar tabela depois do pedido não muda seu crédito");
+  env.DB.sqlite.exec("UPDATE produtos SET prisma_quantidade = 600 WHERE id = 'apoio_50'");
+  const novo = await site(env, "POST", "/api/pedidos", {produto_id: "apoio_50", prisma_quantidade: 900000, valor_centavos: 1}, auth);
+  assert.deepEqual(linha(env, "SELECT valor_centavos, prisma_quantidade FROM pedidos WHERE id = ?", novo.dados.pedido_id), {valor_centavos: 5000, prisma_quantidade: 600});
+  mp.pagar(10003, novo.dados.pedido_id, {transaction_amount: 50});
+  await notificar(env, 10003);
+  assert.equal(saldoPrisma(env), 1200, "repetição concede 600 novamente, não zero nem só diferença");
+  const cat = await site(env, "GET", "/api/catalogo");
+  assert.deepEqual(cat.dados.produtos.filter(p => p.tipo === "apoio").map(p => p.prisma_quantidade), [200, 600, 1200]);
+  assert.ok(cat.dados.produtos.filter(p => p.tipo === "apoio").every(p => !/item especial|personagem/i.test(p.descricao)));
+});
+
+test("apoio Prisma: concorrência do mesmo e de dois pagamentos aprova um crédito e preserva dono", async () => {
+  const {env, mp, pedidoId} = await apoioNovo();
+  const a = mp.pagar(11001, pedidoId, {transaction_amount: 20});
+  const b = mp.pagar(11002, pedidoId, {transaction_amount: 20});
+  await Promise.all(Array.from({length: 8}, (_, i) => sincronizarPagamento(env, String(i % 2 ? a.id : b.id), "teste")));
+  assert.equal(saldoPrisma(env), 200);
+  assert.equal(linhas(env, "SELECT * FROM prisma_lancamentos WHERE apoio_pedido_id = ?", pedidoId).length, 1);
+  const dono = linha(env, "SELECT pagamento_id FROM pedidos WHERE id = ?", pedidoId).pagamento_id;
+  const outro = dono === "11001" ? b : a;
+  outro.status = "refunded";
+  await notificar(env, outro.id);
+  assert.equal(saldoPrisma(env), 200, "outro pagamento não pode estornar o crédito");
+  assert.equal(linha(env, "SELECT pagamento_id FROM pedidos WHERE id = ?", pedidoId).pagamento_id, dono);
+});
+
+test("apoio Prisma: divergências não creditam nem revertem, inclusive moeda, valor, conta e live_mode", async () => {
+  for (const extra of [{transaction_amount: 19}, {currency_id: "USD"}, {collector_id: 999}, {live_mode: false}]) {
+    const {env, mp, pedidoId} = await apoioNovo();
+    env.DB.sqlite.prepare("UPDATE pedidos SET modo = 'real' WHERE id = ?").run(pedidoId);
+    mp.pagar(12001, pedidoId, {transaction_amount: 20, live_mode: true, ...extra});
+    await notificar(env, 12001);
+    assert.equal(saldoPrisma(env), 0);
+    mp.pagar(12001, pedidoId, {transaction_amount: 20, live_mode: true});
+    await notificar(env, 12001);
+    assert.equal(saldoPrisma(env), 200);
+    mp.pagar(12001, pedidoId, {status: "refunded", transaction_amount: 20, live_mode: true, ...extra});
+    await notificar(env, 12001);
+    assert.equal(saldoPrisma(env), 200, "reversão também exige conferência integral");
+  }
+});
+
+test("apoio Prisma: falha no meio do batch reverte tudo; crash depois do batch, retry e cron não duplicam", async () => {
+  const {env, mp, pedidoId} = await apoioNovo();
+  mp.pagar(13001, pedidoId, {transaction_amount: 20});
+  const batch = env.DB.batch.bind(env.DB);
+  env.DB.batch = lista => batch([...lista.slice(0, 3), env.DB.prepare("INSERT INTO tabela_inexistente VALUES (1)")]);
+  assert.equal((await notificar(env, 13001)).status, 500);
+  assert.equal(saldoPrisma(env), 0);
+  assert.equal(linha(env, "SELECT estado FROM pedidos WHERE id = ?", pedidoId).estado, "aguardando_pagamento");
+  // Simula término do processo/erro de resposta DEPOIS do commit do saldo, antes do recálculo dos cargos.
+  env.DB.batch = async lista => { await batch(lista); throw new Error("crash_simulado_apos_commit"); };
+  assert.equal((await notificar(env, 13001)).status, 500);
+  assert.equal(saldoPrisma(env), 200);
+  env.DB.batch = batch;
+  env.DB.sqlite.exec("UPDATE pedidos SET conferido_em = 0");
+  await tarefas(env);
+  assert.equal(linha(env, "SELECT estado FROM direitos WHERE produto_id = 'apoio_20'").estado, "ativo");
+  await notificar(env, 13001);
+  assert.equal(saldoPrisma(env), 200);
+});
+
+test("apoio Prisma: refund após gasto abre caso, não cobra crédito futuro nem remove cosmético; revisão via API existente", async () => {
+  const {env, mp, pedidoId, pedir} = await apoioNovo({PRISMA_GASTOS_ATIVO: "sim"});
+  const p = mp.pagar(14001, pedidoId, {transaction_amount: 20});
+  await notificar(env, 14001);
+  assert.equal((await servidor(env, "POST", "/servidor/prisma/gastar", {uuid: UUID_JOGADOR, quantidade: 150, ref: "apoio-gasto-0001", item: "asas"})).status, 200);
+  p.status = "refunded";
+  await Promise.all(Array.from({length: 4}, () => sincronizarPagamento(env, "14001", "teste")));
+  assert.equal(saldoPrisma(env), 0);
+  assert.deepEqual(linha(env, "SELECT quantidade_revertida, quantidade_pendente FROM apoio_prisma_casos"), {quantidade_revertida: 50, quantidade_pendente: 150});
+  const novo = await pedir("apoio_20");
+  mp.pagar(14002, novo.dados.pedido_id, {transaction_amount: 20});
+  await notificar(env, 14002);
+  await notificar(env, 14001);
+  assert.equal(saldoPrisma(env), 200, "nenhuma cobrança automática de pendência antiga");
+  const casos = await servidor(env, "GET", "/servidor/prisma/casos");
+  assert.equal(casos.dados.casos_apoio.length, 1);
+  const caso = casos.dados.casos_apoio[0];
+  assert.equal(caso.itens[0].item_id, "asas", "cosmético comprado permanece intacto");
+  assert.equal((await servidor(env, "POST", "/servidor/prisma/casos/atualizar", {origem: "apoio", id: caso.id, estado: "resolvido", resolucao: "manter cosmético"})).status, 200);
+  assert.equal(saldoPrisma(env), 200, "gestão do caso não mexe no saldo");
+});
+
+test("apoio Prisma: disputa, chargeback e vitória da loja; parcial mantém crédito e total aprovado com refund integral reverte", async () => {
+  const {env, mp, pedidoId} = await apoioNovo({PRISMA_GASTOS_ATIVO: "sim"});
+  const p = mp.pagar(15001, pedidoId, {transaction_amount: 20});
+  await notificar(env, 15001);
+  p.transaction_amount_refunded = 5;
+  await notificar(env, 15001);
+  assert.equal(saldoPrisma(env), 200);
+  assert.equal(linha(env, "SELECT tipo FROM apoio_prisma_casos").tipo, "reembolso_parcial");
+  await servidor(env, "POST", "/servidor/prisma/gastar", {uuid: UUID_JOGADOR, quantidade: 150, ref: "apoio-gasto-0002", item: "asas"});
+  p.status = "in_mediation";
+  await notificar(env, 15001);
+  assert.equal(saldoPrisma(env), 0);
+  assert.equal(linha(env, "SELECT quantidade_pendente FROM apoio_prisma_casos").quantidade_pendente, 150);
+  p.status = "charged_back";
+  await notificar(env, 15001);
+  assert.equal(saldoPrisma(env), 0);
+  assert.equal(linha(env, "SELECT tipo FROM apoio_prisma_casos").tipo, "chargeback");
+  p.status = "approved";
+  p.transaction_amount_refunded = 0;
+  await notificar(env, 15001);
+  assert.equal(saldoPrisma(env), 50, "libera só a retenção, não recria o que foi gasto");
+  assert.equal(linha(env, "SELECT estado FROM apoio_prisma_casos").estado, "resolvido");
+  p.transaction_amount_refunded = 20;
+  await notificar(env, 15001);
+  assert.equal(saldoPrisma(env), 0);
+  assert.equal(linha(env, "SELECT estado FROM pedidos WHERE id = ?", pedidoId).estado, "reembolsado");
+});
+
+test("apoio Prisma: disputa integral é reentrante e leituras MP antigas não revertem o estado mais novo", async () => {
+  const {env, mp, pedidoId} = await apoioNovo();
+  const p = mp.pagar(16001, pedidoId, {transaction_amount: 20, date_last_updated: "2026-11-07T10:00:00Z"});
+  await notificar(env, 16001);
+  const antigo = {...p};
+  Object.assign(p, {status: "in_mediation", date_last_updated: "2026-11-07T11:00:00Z"});
+  await notificar(env, 16001);
+  assert.equal(saldoPrisma(env), 0);
+  await sincronizarPagamento(env, "16001", "teste_atrasado", antigo);
+  assert.equal(saldoPrisma(env), 0);
+  assert.equal(linha(env, "SELECT estado FROM pedidos WHERE id = ?", pedidoId).estado, "em_disputa");
+  Object.assign(p, {status: "approved", date_last_updated: "2026-11-07T12:00:00Z"});
+  await notificar(env, 16001);
+  await notificar(env, 16001);
+  assert.equal(saldoPrisma(env), 200);
+  Object.assign(p, {status: "cancelled", date_last_updated: "2026-11-07T13:00:00Z"});
+  await notificar(env, 16001);
+  assert.equal(saldoPrisma(env), 0);
+});
+
+test("apoio Prisma: refund e gasto concorrentes nunca deixam saldo negativo", async () => {
+  const {env, mp, pedidoId} = await apoioNovo({PRISMA_GASTOS_ATIVO: "sim"});
+  const p = mp.pagar(17001, pedidoId, {transaction_amount: 20});
+  await notificar(env, 17001);
+  p.status = "refunded";
+  await Promise.all([
+    sincronizarPagamento(env, "17001", "teste"),
+    servidor(env, "POST", "/servidor/prisma/gastar", {uuid: UUID_JOGADOR, quantidade: 200, ref: "apoio-gasto-0003", item: "asas"}),
+  ]);
+  assert.equal(saldoPrisma(env), 0);
+  assert.ok(linha(env, "SELECT quantidade_pendente FROM apoio_prisma_casos").quantidade_pendente >= 0);
+});
+
+test("apoio Prisma: tentativa recusada mais nova não impede outro pagamento válido mais antigo", async () => {
+  const {env, mp, pedidoId} = await apoioNovo();
+  mp.pagar(17501, pedidoId, {status: "rejected", transaction_amount: 20, date_last_updated: "2026-11-07T11:00:00Z"});
+  await notificar(env, 17501);
+  mp.pagar(17502, pedidoId, {transaction_amount: 20, date_last_updated: "2026-11-07T10:00:00Z"});
+  await notificar(env, 17502);
+  assert.equal(saldoPrisma(env), 200);
+  await notificar(env, 17501);
+  assert.equal(linha(env, "SELECT estado FROM pedidos WHERE id = ?", pedidoId).estado, "pago");
+});
+
+test("apoio Prisma: refund recebido antes do aprovado não cria crédito nem caso fictício", async () => {
+  const {env, mp, pedidoId} = await apoioNovo();
+  mp.pagar(17601, pedidoId, {status: "refunded", transaction_amount: 20, date_last_updated: "2026-11-07T11:00:00Z"});
+  await notificar(env, 17601);
+  assert.equal(saldoPrisma(env), 0);
+  assert.equal(linhas(env, "SELECT * FROM apoio_prisma_casos").length, 0);
+  await sincronizarPagamento(env, "17601", "atrasado", {...mp.pagamentos.get("17601"), status: "approved", date_last_updated: "2026-11-07T10:00:00Z"});
+  assert.equal(saldoPrisma(env), 0);
+  assert.equal(linha(env, "SELECT estado FROM pedidos WHERE id = ?", pedidoId).estado, "reembolsado");
+});
+
+test("migração 0007: não há crédito retroativo, nem reutilização de checkout legado; assinaturas/direitos preservados", async () => {
+  const db = criarD1(PASTA, "0006_iris_conquistas.sql");
+  db.sqlite.prepare("INSERT INTO jogadores (uuid, nome, criado_em, atualizado_em) VALUES (?, 'dvdiso', 1, 1)").run(UUID_JOGADOR);
+  const pago = crypto.randomUUID(), aberto = crypto.randomUUID();
+  for (const [id, estado] of [[pago, "pago"], [aberto, "aguardando_pagamento"]]) db.sqlite.prepare(
+    `INSERT INTO pedidos (id, uuid, produto_id, valor_centavos, moeda, modo, estado, checkout_url, criado_em, atualizado_em, expira_em)
+     VALUES (?, ?, 'apoio_20', 2000, 'BRL', 'teste', ?, 'https://www.mercadopago.com.br/checkout/legado', ?, ?, ?)`)
+    .run(id, UUID_JOGADOR, estado, agora(), agora(), agora() + 86400);
+  const assinaturaId = crypto.randomUUID();
+  db.sqlite.prepare(`INSERT INTO assinaturas (id, uuid, produto_id, valor_centavos, modo, estado, criado_em, atualizado_em)
+    VALUES (?, ?, 'apoio_mensal_20', 2000, 'teste', 'autorizada', 1, 1)`).run(assinaturaId, UUID_JOGADOR);
+  db.sqlite.prepare(`INSERT INTO direitos (id, uuid, produto_id, estado, pedido_id, versao, motivo, criado_em, atualizado_em)
+    VALUES (?, ?, 'apoio_20', 'ativo', ?, 1, 'legado', 1, 1)`).run(crypto.randomUUID(), UUID_JOGADOR, pago);
+  db.sqlite.exec(readFileSync(join(PASTA, "0007_apoio_prisma.sql"), "utf8"));
+  const {env, mp} = ambiente({DB: db});
+  assert.equal(saldoPrisma(env), 0);
+  assert.equal(linha(env, "SELECT estado FROM assinaturas").estado, "autorizada");
+  assert.equal(linha(env, "SELECT estado FROM direitos").estado, "ativo");
+  for (const [id, pid] of [[pago, 18001], [aberto, 18002]]) {
+    mp.pagar(pid, id, {transaction_amount: 20});
+    await notificar(env, pid);
+  }
+  assert.equal(saldoPrisma(env), 0, "pedidos antigos pagos antes ou depois não recebem Prisma");
+  env.DB.sqlite.exec("UPDATE produtos SET ativo = 1 WHERE tipo = 'apoio'");
+  const token = await vincular(env);
+  const novo = await site(env, "POST", "/api/pedidos", {produto_id: "apoio_20"}, {Authorization: `Bearer ${token}`});
+  assert.notEqual(novo.dados.pedido_id, aberto);
+  assert.equal(linha(env, "SELECT prisma_quantidade FROM pedidos WHERE id = ?", novo.dados.pedido_id).prisma_quantidade, 200);
+  assert.equal(linhas(env, "PRAGMA foreign_key_check").length, 0);
+});
+
+test("apoio Prisma: a oferta não abre pacotes standalone nem gastos de pets; crédito não depende do gate de venda", async () => {
+  const {env, mp, pedidoId, auth} = await apoioNovo({PRISMA_ATIVO: undefined});
+  mp.pagar(19001, pedidoId, {transaction_amount: 20});
+  await notificar(env, 19001);
+  assert.equal(saldoPrisma(env), 200);
+  env.PRISMA_ATIVO = "sim";
+  assert.deepEqual((await site(env, "GET", "/api/prisma/pacotes")).dados.pacotes, []);
+  assert.equal((await site(env, "POST", "/api/prisma/pedidos", {pacote_id: "prisma_100"}, auth)).dados.erro, "produto_indisponivel");
+  assert.equal((await site(env, "POST", "/api/prisma/comprar-pet", {produto_id: "pet_gato"}, auth)).dados.erro, "gastos_desativados");
+  assert.equal(linhas(env, "SELECT produto_id FROM prisma_precos WHERE ativo = 1").length, 0);
+});
+
+const batchDeRecalculo = lista => lista.some(s => /WITH soma AS/.test(s.sql));
+const batchFinanceiro = lista => /UPDATE pedidos SET estado/.test(lista[0].sql) && /apoio_mp_atualizado_em/.test(lista[0].sql);
+const pendenciaApoio = env => linha(env, "SELECT versao, aplicada_versao FROM apoio_recalculos WHERE uuid = ?", UUID_JOGADOR);
+
+test("regressão: aprovação atrasada após refund não reativa direito com soma velha", {timeout: 3000}, async () => {
+  const {env, mp, pedidoId} = await apoioNovo();
+  const p = mp.pagar(20001, pedidoId, {transaction_amount: 20, date_last_updated: "2026-11-07T10:00:00Z"});
+  await notificar(env, 20001);
+  const batch = env.DB.batch.bind(env.DB);
+  let parar, continuar;
+  const parou = new Promise(resolve => { parar = resolve; });
+  const espera = new Promise(resolve => { continuar = resolve; });
+  let interceptou = false;
+  env.DB.batch = async lista => {
+    if (batchDeRecalculo(lista) && !interceptou) {
+      interceptou = true;
+      parar();
+      await espera; // aprovação já commitou, mas ainda não fez a transação dos direitos
+    }
+    return batch(lista);
+  };
+  const aprovacao = sincronizarPagamento(env, "20001", "aprovacao_atrasada");
+  try {
+    await parou;
+    assert.equal(linha(env, "SELECT estado FROM pedidos WHERE id = ?", pedidoId).estado, "pago");
+    assert.equal(saldoPrisma(env), 200);
+    Object.assign(p, {status: "refunded", date_last_updated: "2026-11-07T11:00:00Z"});
+    await sincronizarPagamento(env, "20001", "refund_no_meio");
+    assert.equal(saldoPrisma(env), 0);
+  } finally { continuar(); }
+  await aprovacao;
+  assert.equal(linha(env, "SELECT estado FROM pedidos WHERE id = ?", pedidoId).estado, "reembolsado");
+  assert.equal(linhas(env, "SELECT * FROM direitos WHERE estado = 'ativo'").length, 0);
+  assert.equal(linha(env, "SELECT estado FROM direitos").estado, "revogado");
+  assert.equal(linhas(env, "SELECT * FROM entregas WHERE estado = 'pendente' AND acao = 'liberar'").length, 0);
+  assert.equal(pendenciaApoio(env).versao, pendenciaApoio(env).aplicada_versao);
+});
+
+test("regressão: crash antes/depois do commit financeiro conserva outbox; cron recupera terminais antigos sem MP", async () => {
+  for (const snapshot of [600, 0]) for (const status of ["refunded", "charged_back", "cancelled"]) {
+    const {env, mp, pedidoId} = await apoioNovo({}, "apoio_50");
+    env.DB.sqlite.prepare("UPDATE pedidos SET prisma_quantidade = ? WHERE id = ?").run(snapshot, pedidoId);
+    const p = mp.pagar(20101, pedidoId, {transaction_amount: 50});
+    await notificar(env, 20101);
+    assert.equal(linhas(env, "SELECT * FROM direitos WHERE estado = 'ativo'").length, 2);
+    const antes = pendenciaApoio(env);
+    const batch = env.DB.batch.bind(env.DB);
+    p.status = status;
+    // Falha dentro da transação financeira: estado, reversão e versão da outbox fazem rollback juntos.
+    env.DB.batch = lista => batchFinanceiro(lista)
+      ? batch([...lista, env.DB.prepare("INSERT INTO tabela_inexistente VALUES (1)")]) : batch(lista);
+    assert.equal((await notificar(env, 20101)).status, 500);
+    assert.equal(linha(env, "SELECT estado FROM pedidos WHERE id = ?", pedidoId).estado, "pago");
+    assert.equal(saldoPrisma(env), snapshot);
+    assert.deepEqual(pendenciaApoio(env), antes);
+    // Reinício depois do commit financeiro, antes do recálculo: estado terminal e saldo já persistiram.
+    env.DB.batch = async lista => {
+      const r = await batch(lista);
+      if (batchFinanceiro(lista)) throw new Error("crash_apos_financeiro_antes_direitos");
+      return r;
+    };
+    assert.equal((await notificar(env, 20101)).status, 500);
+    const terminal = {refunded: "reembolsado", charged_back: "contestado", cancelled: "cancelado"}[status];
+    assert.equal(linha(env, "SELECT estado FROM pedidos WHERE id = ?", pedidoId).estado, terminal);
+    assert.equal(saldoPrisma(env), 0);
+    assert.equal(linhas(env, "SELECT * FROM direitos WHERE estado = 'ativo'").length, 2, "estado transitório capturado pela outbox");
+    assert.ok(pendenciaApoio(env).versao > pendenciaApoio(env).aplicada_versao);
+    // Nada de depender de reconferência de pagos, idade do pedido, mutação do catálogo ou API financeira.
+    env.DB.batch = batch;
+    env.DB.sqlite.exec(`UPDATE pedidos SET criado_em = criado_em - ${400 * 86400}; UPDATE produtos SET prisma_quantidade = 9999 WHERE tipo = 'apoio'`);
+    delete env.MP_ACCESS_TOKEN;
+    const chamadas = mp.chamadas.length;
+    const r = await tarefas(env);
+    assert.equal(r.apoios_recalculados, 1);
+    assert.equal(mp.chamadas.length, chamadas);
+    assert.equal(linhas(env, "SELECT * FROM direitos WHERE estado = 'ativo'").length, 0);
+    assert.equal(linhas(env, "SELECT * FROM entregas WHERE estado = 'pendente' AND acao = 'revogar'").length, 2);
+    assert.equal(pendenciaApoio(env).versao, pendenciaApoio(env).aplicada_versao);
+    assert.equal(linha(env, "SELECT prisma_quantidade FROM pedidos WHERE id = ?", pedidoId).prisma_quantidade, snapshot);
+    assert.equal(saldoPrisma(env), 0);
+  }
+});
+
+test("regressão: crash no meio do recálculo não confirma a versão; cron conclui histórico e entregas", async () => {
+  const {env, mp, pedidoId} = await apoioNovo();
+  const p = mp.pagar(20201, pedidoId, {transaction_amount: 20});
+  await notificar(env, 20201);
+  p.status = "refunded";
+  const batch = env.DB.batch.bind(env.DB);
+  env.DB.batch = lista => batchDeRecalculo(lista)
+    ? batch([...lista.slice(0, 2), env.DB.prepare("INSERT INTO tabela_inexistente VALUES (1)")]) : batch(lista);
+  assert.equal((await notificar(env, 20201)).status, 500);
+  assert.equal(saldoPrisma(env), 0);
+  assert.equal(linha(env, "SELECT estado FROM pedidos WHERE id = ?", pedidoId).estado, "reembolsado");
+  assert.equal(linha(env, "SELECT estado FROM direitos").estado, "ativo", "UPDATE do direito também sofreu rollback");
+  assert.ok(pendenciaApoio(env).versao > pendenciaApoio(env).aplicada_versao);
+  env.DB.batch = batch;
+  delete env.MP_ACCESS_TOKEN;
+  await tarefas(env);
+  assert.equal(linha(env, "SELECT estado, versao FROM direitos").estado, "revogado");
+  assert.equal(linhas(env, "SELECT * FROM historico_direitos").length, 2);
+  assert.equal(linha(env, "SELECT acao FROM entregas WHERE estado = 'pendente'").acao, "revogar");
+  assert.equal(pendenciaApoio(env).versao, pendenciaApoio(env).aplicada_versao);
+  await tarefas(env);
+  assert.equal(linhas(env, "SELECT * FROM historico_direitos").length, 2, "cron repetido não duplica versões");
+});
+
+test("regressão: refund/disputa sem crédito não toma posse do checkout; outro approved válido é processado", async () => {
+  for (const status of ["refunded", "in_mediation", "charged_back"]) {
+    const {env, mp, pedidoId} = await apoioNovo();
+    mp.pagar(20301, pedidoId, {status, transaction_amount: 20, date_last_updated: "2026-11-07T11:00:00Z"});
+    await notificar(env, 20301);
+    assert.equal(linha(env, "SELECT pagamento_id FROM pedidos WHERE id = ?", pedidoId).pagamento_id, null);
+    assert.equal(saldoPrisma(env), 0);
+    mp.pagar(20302, pedidoId, {transaction_amount: 20, date_last_updated: "2026-11-07T10:00:00Z"});
+    await notificar(env, 20302);
+    assert.equal(linha(env, "SELECT pagamento_id FROM pedidos WHERE id = ?", pedidoId).pagamento_id, "20302");
+    assert.equal(saldoPrisma(env), 200);
+    await notificar(env, 20301);
+    assert.equal(linha(env, "SELECT estado FROM pedidos WHERE id = ?", pedidoId).estado, "pago");
+    assert.equal(linha(env, "SELECT estado FROM direitos").estado, "ativo");
+    assert.equal(saldoPrisma(env), 200);
+    assert.equal(linhas(env, "SELECT * FROM prisma_lancamentos WHERE apoio_pedido_id = ?", pedidoId).length, 1);
+  }
 });

@@ -4,12 +4,13 @@ import {DatabaseSync} from "node:sqlite";
 import {readFileSync, readdirSync} from "node:fs";
 import {join} from "node:path";
 
-export function criarD1(pastaMigracoes) {
+export function criarD1(pastaMigracoes, ate = null) {
   const db = new DatabaseSync(":memory:");
   db.exec("PRAGMA foreign_keys = ON");
-  for (const f of readdirSync(pastaMigracoes).filter(f => f.endsWith(".sql")).sort()) db.exec(readFileSync(join(pastaMigracoes, f), "utf8"));
+  for (const f of readdirSync(pastaMigracoes).filter(f => f.endsWith(".sql") && (!ate || f <= ate)).sort()) db.exec(readFileSync(join(pastaMigracoes, f), "utf8"));
   const linha = r => (r ? {...r} : null);
   const declaracao = (sql, args = []) => ({
+    sql, // instrumentação de interleavings/falhas nos testes, sem quebrar a atomicidade do batch
     bind: (...novos) => declaracao(sql, novos),
     async first(coluna) {
       const r = linha(db.prepare(sql).get(...args));
@@ -18,7 +19,7 @@ export function criarD1(pastaMigracoes) {
     async all() {
       return {success: true, results: db.prepare(sql).all(...args).map(linha), meta: {}};
     },
-    async run() {
+    run() {
       const s = db.prepare(sql);
       if (/\breturning\b/i.test(sql)) {
         const results = s.all(...args).map(linha);
@@ -35,7 +36,8 @@ export function criarD1(pastaMigracoes) {
       db.exec("BEGIN");
       try {
         const saida = [];
-        for (const s of lista) saida.push(await s.run());
+        // Nenhum await entre statements: como no D1, outra requisição não entra no meio da transação.
+        for (const s of lista) saida.push(s.run());
         db.exec("COMMIT");
         return saida;
       } catch (e) {

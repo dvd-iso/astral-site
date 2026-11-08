@@ -11,6 +11,7 @@
 
 import {criarPrisma, prismaAtivo} from "./prisma.mjs";
 import {criarRecompensas} from "./recompensas.mjs";
+import {aplicarPrismaDoApoio} from "./apoio-prisma.mjs";
 
 const enc = new TextEncoder();
 const MP_API = "https://api.mercadopago.com";
@@ -19,7 +20,6 @@ const VINCULO_SEGUNDOS = 10 * 60;
 const SESSAO_SEGUNDOS = 30 * 24 * 3600;
 const PEDIDO_SEGUNDOS = 24 * 3600;
 const TENTATIVAS_CODIGO = 5;
-const APOIO_DE_NOVO_SEGUNDOS = 30 * 86400; // depois de um mês do último apoio pago, pode apoiar de novo
 const ALFABETO_CODIGO = /^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$/;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const NOME_RE = /^[A-Za-z0-9_]{3,16}$/;
@@ -144,6 +144,7 @@ export function modoDaLoja(env) {
 
 /** Retorna null quando o produto pode ser vendido agora, ou o motivo do bloqueio. */
 export function bloqueioDeVenda(env, produto) {
+  if (produto?.tipo === "apoio_mensal") return "novas_assinaturas_encerradas";
   if (!produto || produto.ativo !== 1) return "produto_indisponivel";
   if (env.LOJA_PAUSADA === "sim") return "loja_pausada";
   if (!env.MP_ACCESS_TOKEN || !env.MP_RECEBEDOR_ID || !env.MP_WEBHOOK_SECRET) return "loja_nao_configurada";
@@ -244,18 +245,61 @@ export async function somaDoApoio(env, uuid) {
  * Todo tier de valor menor também fica ativo: cada um inclui os anteriores.
  */
 export async function recalcularApoio(env, uuid, pedidoId, motivo) {
-  const {pago, disputa} = await somaDoApoio(env, uuid);
-  const {results: tiers} = await env.DB.prepare("SELECT id, preco_centavos FROM produtos WHERE tipo = 'apoio' ORDER BY preco_centavos").all();
-  const mudancas = [];
-  for (const tier of tiers) {
-    const atual = await env.DB.prepare("SELECT estado FROM direitos WHERE uuid = ? AND produto_id = ?").bind(uuid, tier.id).first();
-    const estado = tier.preco_centavos <= pago ? "ativo" : tier.preco_centavos <= pago + disputa ? "suspenso" : "revogado";
-    if (estado === (atual?.estado ?? "revogado")) continue;
-    if (!atual && estado !== "ativo") continue;
-    const r = await aplicarDireito(env, {uuid, produtoId: tier.id, pedidoId, estado, motivo, forcar: true});
-    if (r.mudou) mudancas.push(`${tier.id}:${r.estado}`);
+  const t = agora();
+  // UUIDs internos por linha, não um único parâmetro repetido por INSERT ... SELECT.
+  const novoId = `lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' || substr(hex(randomblob(2)), 2)
+    || '-a' || substr(hex(randomblob(2)), 2) || '-' || hex(randomblob(6)))`;
+  // Nenhuma soma ou decisão de direito sai da transação. Um recálculo atrasado lê o estado ATUAL,
+  // nunca a soma capturada antes de outro pagamento/refund. O ACK da versão também é transacional.
+  const r = await env.DB.batch([
+    env.DB.prepare(`INSERT OR IGNORE INTO apoio_recalculos (uuid, pedido_id, motivo, atualizado_em) VALUES (?, ?, ?, ?)`)
+      .bind(uuid, pedidoId, motivo, t),
+    env.DB.prepare(
+      `WITH soma AS (
+         SELECT COALESCE(SUM(CASE WHEN pe.estado = 'pago' THEN pe.valor_centavos - COALESCE(pg.reembolsado_centavos, 0) END), 0) AS pago,
+           COALESCE(SUM(CASE WHEN pe.estado = 'em_disputa' THEN pe.valor_centavos END), 0) AS disputa
+         FROM pedidos pe JOIN produtos pr ON pr.id = pe.produto_id LEFT JOIN pagamentos pg ON pg.id = pe.pagamento_id
+         WHERE pe.uuid = ?1 AND pr.tipo IN ${TIPOS_APOIO}
+       ), alvos AS (
+         SELECT p.id, CASE WHEN p.preco_centavos <= s.pago THEN 'ativo'
+           WHEN p.preco_centavos <= s.pago + s.disputa THEN 'suspenso' ELSE 'revogado' END AS estado
+         FROM produtos p CROSS JOIN soma s WHERE p.tipo = 'apoio'
+       )
+       INSERT INTO direitos (id, uuid, produto_id, estado, pedido_id, versao, motivo, criado_em, atualizado_em)
+       SELECT ${novoId}, ?1, a.id, a.estado, q.pedido_id, 1, q.motivo, ?2, ?2
+       FROM alvos a JOIN apoio_recalculos q ON q.uuid = ?1
+       WHERE a.estado = 'ativo' OR EXISTS (SELECT 1 FROM direitos d WHERE d.uuid = ?1 AND d.produto_id = a.id)
+       ON CONFLICT (uuid, produto_id) DO UPDATE SET estado = excluded.estado, pedido_id = excluded.pedido_id,
+         versao = direitos.versao + 1, motivo = excluded.motivo, atualizado_em = excluded.atualizado_em
+       WHERE direitos.estado <> excluded.estado`).bind(uuid, t),
+    env.DB.prepare(
+      `INSERT OR IGNORE INTO historico_direitos (direito_id, versao, estado, pedido_id, motivo, criado_em)
+       SELECT d.id, d.versao, d.estado, d.pedido_id, d.motivo, ?2 FROM direitos d JOIN produtos p ON p.id = d.produto_id
+       WHERE d.uuid = ?1 AND p.tipo = 'apoio'`).bind(uuid, t),
+    env.DB.prepare(
+      `UPDATE entregas SET estado = 'substituida' WHERE uuid = ?1 AND estado = 'pendente'
+       AND produto_id IN (SELECT id FROM produtos WHERE tipo = 'apoio')
+       AND versao < (SELECT versao FROM direitos d WHERE d.id = entregas.direito_id)`).bind(uuid),
+    env.DB.prepare(
+      `INSERT OR IGNORE INTO entregas (id, direito_id, uuid, produto_id, acao, versao, estado, tentativas, proxima_tentativa_em, criado_em)
+       SELECT ${novoId}, d.id, d.uuid, d.produto_id,
+         CASE d.estado WHEN 'ativo' THEN 'liberar' WHEN 'suspenso' THEN 'suspender' ELSE 'revogar' END,
+         d.versao, 'pendente', 0, ?2, ?2 FROM direitos d JOIN produtos p ON p.id = d.produto_id
+       WHERE d.uuid = ?1 AND p.tipo = 'apoio'`).bind(uuid, t),
+    env.DB.prepare(`UPDATE apoio_recalculos SET aplicada_versao = versao WHERE uuid = ?`).bind(uuid),
+  ]);
+  return r[1].meta.changes ? ["apoio:recalculado"] : [];
+}
+
+async function recuperarRecalculosApoio(env) {
+  const {results} = await env.DB.prepare(
+    `SELECT uuid, pedido_id, motivo FROM apoio_recalculos WHERE aplicada_versao < versao ORDER BY atualizado_em LIMIT 20`).all();
+  let n = 0;
+  for (const p of results) {
+    try { await recalcularApoio(env, p.uuid, p.pedido_id, p.motivo); n++; }
+    catch (e) { console.log("recálculo de apoio pendente", e.codigo || e.message); }
   }
-  return mudancas;
+  return n;
 }
 
 // ---------- apoio mensal (Assinaturas do Mercado Pago) ----------
@@ -327,49 +371,6 @@ async function sincronizarCobranca(env, cobrancaId, origem) {
   if (!pid) return {resultado: "sem_pagamento_ainda"};
   await pedidoDaCobranca(env, a, String(pid), (await env.DB.prepare("SELECT pedido_id FROM cobrancas WHERE pagamento_id = ?").bind(String(pid)).first())?.pedido_id);
   return sincronizarPagamento(env, String(pid), origem);
-}
-
-const EMAIL_RE = /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,24}$/;
-
-async function criarAssinatura(req, env, s) {
-  const {produto_id: produtoId, email} = lerJson(await lerCorpo(req));
-  if (typeof produtoId !== "string") throw new Erro(400, "produto_invalido");
-  if (typeof email !== "string" || email.length > 254 || !EMAIL_RE.test(email.trim())) throw new Erro(400, "email_invalido");
-  await limitar(env, `assinatura:${s.uuid}`, 6, 3600);
-  const produto = await env.DB.prepare("SELECT * FROM produtos WHERE id = ? AND tipo = 'apoio_mensal'").bind(produtoId).first();
-  const bloqueio = bloqueioDeVenda(env, produto);
-  if (bloqueio) throw new Erro(produto ? 403 : 404, bloqueio);
-  const t = agora();
-  const viva = await env.DB.prepare("SELECT id, estado, checkout_url, produto_id FROM assinaturas WHERE uuid = ? AND estado IN ('criada', 'pendente', 'autorizada', 'pausada') ORDER BY criado_em DESC LIMIT 1").bind(s.uuid).first();
-  if (viva && viva.estado !== "pendente") throw new Erro(409, "ja_assina");
-  if (viva) await env.DB.prepare("UPDATE assinaturas SET estado = 'cancelada', atualizado_em = ? WHERE id = ?").bind(t, viva.id).run(); // troca a pendente
-
-  const id = crypto.randomUUID();
-  const modo = modoDaLoja(env);
-  await env.DB.prepare(
-    `INSERT INTO assinaturas (id, uuid, produto_id, valor_centavos, modo, estado, criado_em, atualizado_em) VALUES (?, ?, ?, ?, ?, 'criada', ?, ?)`)
-    .bind(id, s.uuid, produto.id, produto.preco_centavos, modo, t, t).run();
-  const site = String(env.SITE_URL || "https://astralmc.online").replace(/\/$/, "");
-  const r = await mp(env, "POST", "/preapproval", {
-    reason: `Astral · ${produto.nome}`,
-    external_reference: `assinatura:${id}`,
-    payer_email: email.trim(),
-    auto_recurring: {frequency: 1, frequency_type: "months", transaction_amount: produto.preco_centavos / 100, currency_id: produto.moeda},
-    back_url: `${site}/loja.html?assinatura=${id}`,
-    status: "pending",
-  }, `assinatura-${id}`);
-  if (!r.ok) {
-    await env.DB.prepare("UPDATE assinaturas SET estado = 'cancelada', atualizado_em = ? WHERE id = ?").bind(agora(), id).run();
-    let motivo = ""; try { motivo = String((await r.json()).message || "").slice(0, 120); } catch { /* sem corpo */ }
-    await registrarEvento(env, {origem: "assinatura", detalhe: `preapproval_falhou:${r.status}:${motivo}`});
-    throw new Erro(502, "assinatura_indisponivel");
-  }
-  const pre = await r.json();
-  const url = pre.init_point;
-  if (!pre.id || !url || !/^https:\/\/([a-z0-9-]+\.)*mercadopago\.com(\.br)?\//.test(url)) throw new Erro(502, "assinatura_indisponivel");
-  await env.DB.prepare("UPDATE assinaturas SET estado = 'pendente', preapproval_id = ?, checkout_url = ?, atualizado_em = ? WHERE id = ?")
-    .bind(String(pre.id), url, agora(), id).run();
-  return {assinatura_id: id, checkout_url: url};
 }
 
 async function cancelarAssinatura(env, s, id) {
@@ -485,19 +486,32 @@ export async function sincronizarPagamento(env, pagamentoId, origem, jaLido = nu
   const conferencia = problemas.length ? problemas.join(",") : "ok";
   await salvarPagamento(env, p, pedido.id, conferencia, t);
 
+  if (ehApoio) {
+    // Estado financeiro, dono do pagamento, pendência de cargos e eventual saldo na mesma transação.
+    // Snapshot zero (legado/mensal) nunca entra no livro Prisma, mas usa a mesma proteção financeira.
+    if (problemas.length) {
+      if (status === "approved") await env.DB.prepare(
+        `UPDATE pedidos SET estado = 'divergente', atualizado_em = ?, conferido_em = ?
+         WHERE id = ? AND pagamento_id IS NULL AND apoio_mp_atualizado_em <= ?`)
+        .bind(t, t, pedido.id, Number.isFinite(Date.parse(p.date_last_updated)) ? Date.parse(p.date_last_updated) : 0).run();
+      await registrarEvento(env, {pagamentoId: id, pedidoId: pedido.id, origem, status, detalhe: `nao_creditado:${conferencia}`});
+      return {resultado: "divergente", problemas};
+    }
+    const estado = ESTADO_DO_PEDIDO[status];
+    if (!estado) return {resultado: "status_ignorado"};
+    const {aplicado} = await aplicarPrismaDoApoio(env, pedido, p, estado, t);
+    if (aplicado) await recalcularApoio(env, pedido.uuid, pedido.id, `pagamento ${id} ${status}`);
+    await registrarEvento(env, {pagamentoId: id, pedidoId: pedido.id, origem, status,
+      detalhe: aplicado ? `apoio_prisma:${estado}:snapshot=${pedido.prisma_quantidade}` : "pagamento_duplicado_ou_leitura_antiga:revisar_manual"});
+    return {resultado: "processado", pedido: (await env.DB.prepare("SELECT estado FROM pedidos WHERE id = ?").bind(pedido.id).first()).estado, problemas};
+  }
+
   const controla = !pedido.pagamento_id || pedido.pagamento_id === id; // este pagamento é o que liberou (ou o primeiro)
   let novoEstado = ESTADO_DO_PEDIDO[status] ?? pedido.estado;
   let direito = null;
   const detalhes = [];
 
-  if (ehApoio && controla) {
-    // Apoio: o estado do pedido conta para a soma; grava primeiro e recalcula os tiers.
-    if (status === "approved" && problemas.length) { novoEstado = "divergente"; detalhes.push(`nao_liberado:${conferencia}`); }
-    const pagamentoId = status === "approved" && !problemas.length ? id : pedido.pagamento_id;
-    await env.DB.prepare("UPDATE pedidos SET estado = ?, pagamento_id = ?, atualizado_em = ? WHERE id = ?").bind(novoEstado, pagamentoId ?? null, t, pedido.id).run();
-    detalhes.push(...await recalcularApoio(env, pedido.uuid, pedido.id, `pagamento ${id} ${status}`));
-    if (reembolsado > 0 && status === "approved") detalhes.push(`reembolso_parcial:${reembolsado}:desconta_da_soma`);
-  } else if (status === "approved") {
+  if (status === "approved") {
     if (problemas.length) {
       novoEstado = controla ? "divergente" : pedido.estado;
       detalhes.push(`nao_liberado:${conferencia}`);
@@ -532,16 +546,18 @@ export async function sincronizarPagamento(env, pagamentoId, origem, jaLido = nu
 
 async function salvarPagamento(env, p, pedidoId, conferencia, t) {
   await env.DB.prepare(
-    `INSERT INTO pagamentos (id, pedido_id, status, status_detalhe, valor_centavos, reembolsado_centavos, moeda, recebedor_id, live_mode, tipo_pagamento, conferencia, atualizado_em)
-     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)
+    `INSERT INTO pagamentos (id, pedido_id, status, status_detalhe, valor_centavos, reembolsado_centavos, moeda, recebedor_id, live_mode, tipo_pagamento, conferencia, atualizado_em, mp_atualizado_em)
+     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)
      ON CONFLICT (id) DO UPDATE SET pedido_id = excluded.pedido_id, status = excluded.status, status_detalhe = excluded.status_detalhe,
        valor_centavos = excluded.valor_centavos, reembolsado_centavos = excluded.reembolsado_centavos, moeda = excluded.moeda,
        recebedor_id = excluded.recebedor_id, live_mode = excluded.live_mode, tipo_pagamento = excluded.tipo_pagamento,
-       conferencia = excluded.conferencia, atualizado_em = excluded.atualizado_em`)
+        conferencia = excluded.conferencia, atualizado_em = excluded.atualizado_em, mp_atualizado_em = excluded.mp_atualizado_em
+      WHERE pagamentos.mp_atualizado_em <= excluded.mp_atualizado_em`)
     .bind(String(p.id), pedidoId, String(p.status || "desconhecido"), p.status_detail ?? null,
       Number.isFinite(centavos(p.transaction_amount)) ? centavos(p.transaction_amount) : null,
       centavos(p.transaction_amount_refunded || 0) || 0, p.currency_id ?? null, p.collector_id != null ? String(p.collector_id) : null,
-      p.live_mode === true ? 1 : p.live_mode === false ? 0 : null, p.payment_type_id ?? null, conferencia, t).run();
+      p.live_mode === true ? 1 : p.live_mode === false ? 0 : null, p.payment_type_id ?? null, conferencia, t,
+      Number.isFinite(Date.parse(p.date_last_updated)) ? Date.parse(p.date_last_updated) : 0).run();
 }
 
 async function registrarEvento(env, {pagamentoId = null, pedidoId = null, origem, status = null, detalhe = null}) {
@@ -553,12 +569,13 @@ async function registrarEvento(env, {pagamentoId = null, pedidoId = null, origem
 
 async function catalogo(env) {
   const {results} = await env.DB.prepare(
-    "SELECT id, tipo, nome, descricao, preco_centavos, moeda, preco_confirmado, ativo FROM produtos ORDER BY ordem").all();
+    "SELECT id, tipo, nome, descricao, preco_centavos, moeda, preco_confirmado, ativo, prisma_quantidade FROM produtos ORDER BY ordem").all();
   return {
     modo: modoDaLoja(env),
-    produtos: results.map(p => ({
+    produtos: results.filter(p => p.tipo !== "apoio_mensal").map(p => ({
       id: p.id, tipo: p.tipo, nome: p.nome, descricao: p.descricao, ativo: p.ativo === 1,
       preco_centavos: p.preco_centavos, moeda: p.moeda, preco_de_teste: p.preco_confirmado !== 1,
+      prisma_quantidade: p.prisma_quantidade,
       a_venda: bloqueioDeVenda(env, p) === null,
     })),
   };
@@ -633,7 +650,7 @@ async function conta(env, s) {
      WHERE a.uuid = ? AND a.estado IN ('pendente', 'autorizada', 'pausada') ORDER BY a.criado_em DESC LIMIT 1`).bind(s.uuid).first();
   const noMural = await env.DB.prepare("SELECT visivel FROM mural WHERE uuid = ?").bind(s.uuid).first("visivel");
   return {jogador: {uuid: s.uuid, nome: s.nome}, direitos: direitos.results, pedidos: pedidos.results,
-    apoio_total: soma.pago, apoio_liberado_em: soma.ultimo ? soma.ultimo + APOIO_DE_NOVO_SEGUNDOS : null, agora: agora(),
+    apoio_total: soma.pago, apoio_liberado_em: 1, agora: agora(),
     assinatura: assinatura || null, mural_visivel: noMural === null || noMural === undefined ? true : noMural === 1};
 }
 
@@ -648,26 +665,28 @@ async function criarPedido(req, env, s) {
     : await env.DB.prepare("SELECT estado FROM direitos WHERE uuid = ? AND produto_id = ? AND estado IN ('ativo', 'suspenso')")
       .bind(s.uuid, produtoId).first();
   if (possui) throw new Erro(409, "ja_possui");
-  const valor = produto.tipo === "apoio" ? await valorDoApoio(env, s.uuid, produto) : produto.preco_centavos;
+  const cotacao = produto.tipo === "apoio" ? await cotacaoDoApoio(env, s.uuid, produto) : {valor: produto.preco_centavos, quantidade: 0, base: 0};
+  const {valor, quantidade, base} = cotacao;
   const t = agora();
   const modo = modoDaLoja(env);
   const aberto = await env.DB.prepare(
     `SELECT id, checkout_url FROM pedidos WHERE uuid = ? AND produto_id = ? AND estado = 'aguardando_pagamento' AND modo = ?
-       AND valor_centavos = ? AND expira_em > ? AND checkout_url IS NOT NULL ORDER BY criado_em DESC LIMIT 1`)
-    .bind(s.uuid, produtoId, modo, valor, t + 600).first();
+       AND valor_centavos = ? AND prisma_quantidade = ? AND prisma_base_quantidade = ?
+       AND expira_em > ? AND checkout_url IS NOT NULL ORDER BY criado_em DESC LIMIT 1`)
+    .bind(s.uuid, produtoId, modo, valor, quantidade, base, t + 600).first();
   if (aberto) return {pedido_id: aberto.id, checkout_url: aberto.checkout_url, reaproveitado: true};
 
   const id = crypto.randomUUID();
   await env.DB.prepare(
-    `INSERT INTO pedidos (id, uuid, produto_id, valor_centavos, moeda, modo, estado, criado_em, atualizado_em, expira_em)
-     VALUES (?, ?, ?, ?, ?, ?, 'criado', ?, ?, ?)`).bind(id, s.uuid, produtoId, valor, produto.moeda, modo, t, t, t + PEDIDO_SEGUNDOS).run();
+    `INSERT INTO pedidos (id, uuid, produto_id, valor_centavos, moeda, modo, estado, criado_em, atualizado_em, expira_em, prisma_quantidade, prisma_base_quantidade)
+     VALUES (?, ?, ?, ?, ?, ?, 'criado', ?, ?, ?, ?, ?)`).bind(id, s.uuid, produtoId, valor, produto.moeda, modo, t, t, t + PEDIDO_SEGUNDOS, quantidade, base).run();
 
   const site = String(env.SITE_URL || "https://astralmc.online").replace(/\/$/, "");
   const volta = `${site}/loja.html?pedido=${id}`;
   const preferencia = {
     items: [produto.tipo === "apoio"
       ? {id: produto.id, title: `Astral · Apoio ${produto.nome}`, description: valor < produto.preco_centavos
-          ? "Apoio ao servidor Astral (diferença para subir de tier, pagamento único)" : "Apoio ao servidor Astral (pagamento único)",
+          ? `Upgrade de apoio ao Astral: diferença de tier e ${quantidade} Prisma (pagamento único)` : `Apoio ao Astral com ${quantidade} Prisma (pagamento único)`,
         quantity: 1, currency_id: produto.moeda, unit_price: valor / 100}
       : {id: produto.id, title: `Astral · Pet ${produto.nome}`, description: "Pet cosmético do servidor Astral (compra única)",
         quantity: 1, currency_id: produto.moeda, unit_price: valor / 100}],
@@ -700,22 +719,29 @@ async function criarPedido(req, env, s) {
 /**
  * Quanto custa o tier avulso para este jogador. Tudo soma: avulso, diferença e meses do apoio mensal.
  * - Soma abaixo do tier: paga só o que falta para chegar nele.
- * - Já tem o tier (soma igual ou maior): pode apoiar de novo pelo valor cheio, um mês depois do último
- *   apoio pago; esse valor também soma (pode subir de tier). Item e personagem continuam um por jogador.
+ * - Já tem o tier: novo apoio pelo valor cheio e quantidade cheia, sem assinatura nem carência mensal.
+ * - Upgrade: diferença em reais até o total alvo e diferença de Prisma entre o tier atual e o alvo.
+ *   Saldo gasto não entra na cotação; quantidade e base são snapshots no pedido.
  * - Com um apoio em contestação, nada de apoio é vendido até a disputa acabar.
  */
 export async function valorDoApoio(env, uuid, produto) {
-  const {pago, disputa, ultimo} = await somaDoApoio(env, uuid);
+  return (await cotacaoDoApoio(env, uuid, produto)).valor;
+}
+
+async function cotacaoDoApoio(env, uuid, produto) {
+  const {pago, disputa} = await somaDoApoio(env, uuid);
   if (disputa > 0) throw new Erro(409, "apoio_em_disputa");
-  if (pago < produto.preco_centavos) return produto.preco_centavos - pago;
-  const liberado = ultimo ? ultimo + APOIO_DE_NOVO_SEGUNDOS : null;
-  if (liberado && liberado <= agora()) return produto.preco_centavos;
-  throw new Erro(409, "apoio_recente", {liberado_em: liberado});
+  if (pago >= produto.preco_centavos) return {valor: produto.preco_centavos, quantidade: produto.prisma_quantidade, base: 0};
+  const tier = await env.DB.prepare("SELECT prisma_quantidade FROM produtos WHERE tipo = 'apoio' AND preco_centavos <= ? ORDER BY preco_centavos DESC LIMIT 1").bind(pago).first();
+  const base = tier?.prisma_quantidade || 0;
+  const quantidade = produto.prisma_quantidade - base;
+  if (quantidade < 1) throw new Erro(403, "produto_indisponivel");
+  return {valor: produto.preco_centavos - pago, quantidade, base};
 }
 
 async function verPedido(env, s, id) {
   const p = await env.DB.prepare(
-    `SELECT p.id, p.produto_id, pr.nome AS produto, p.valor_centavos, p.moeda, p.modo, p.estado, p.criado_em,
+    `SELECT p.id, p.produto_id, pr.nome AS produto, p.valor_centavos, p.moeda, p.modo, p.estado, p.criado_em, p.prisma_quantidade,
             (SELECT estado FROM direitos d WHERE d.uuid = p.uuid AND d.produto_id = p.produto_id AND d.pedido_id = p.id) AS direito
      FROM pedidos p JOIN produtos pr ON pr.id = p.produto_id WHERE p.id = ? AND p.uuid = ?`).bind(id, s.uuid).first();
   if (!p) throw new Erro(404, "pedido_nao_encontrado");
@@ -874,7 +900,9 @@ export async function tarefas(env) {
     env.DB.prepare("DELETE FROM limites WHERE janela_inicio < ?").bind(t - 86400),
     env.DB.prepare("DELETE FROM sessoes WHERE expira_em < ?").bind(t),
   ]);
-  if (!env.MP_ACCESS_TOKEN) return {conciliados: 0};
+  // Outbox financeira local: inclui refund/chargeback/cancelamento, sem janela de idade nem dependência do MP.
+  const apoiosRecalculados = await recuperarRecalculosApoio(env);
+  if (!env.MP_ACCESS_TOKEN) return {conciliados: 0, apoios_recalculados: apoiosRecalculados};
   let conciliados = 0;
   // 1) Pedidos sem pagamento confirmado: busca por external_reference (recupera notificações perdidas).
   const abertos = await env.DB.prepare(
@@ -909,7 +937,7 @@ export async function tarefas(env) {
   // 4) Pedidos abandonados há mais de 3 dias viram expirados (um pagamento tardio ainda libera pelo webhook).
   await env.DB.prepare("UPDATE pedidos SET estado = 'expirado', atualizado_em = ? WHERE estado IN ('criado', 'aguardando_pagamento') AND expira_em < ?")
     .bind(t, t - 2 * 86400).run();
-  return {conciliados};
+  return {conciliados, apoios_recalculados: apoiosRecalculados};
 }
 
 // ---------- roteador ----------
@@ -935,7 +963,7 @@ export async function handle(req, env) {
       await env.DB.prepare("UPDATE sessoes SET revogada = 1 WHERE token_hash = ?").bind(s.tokenHash).run();
       r = {ok: true};
     } else if (caminho === "/api/pedidos" && req.method === "POST") r = await criarPedido(req, env, await sessao(req, env));
-    else if (caminho === "/api/assinaturas" && req.method === "POST") r = await criarAssinatura(req, env, await sessao(req, env));
+    else if (caminho === "/api/assinaturas" && req.method === "POST") throw new Erro(403, "novas_assinaturas_encerradas");
     else if ((m = /^\/api\/assinaturas\/([0-9a-f-]{36})\/cancelar$/.exec(caminho)) && req.method === "POST") r = await cancelarAssinatura(env, await sessao(req, env), m[1]);
     else if (caminho.startsWith("/api/prisma")) r = await prisma.rotaSite(req, env, caminho);
     else if (caminho === "/api/mural" && req.method === "POST") r = await mudarMural(req, env, await sessao(req, env));

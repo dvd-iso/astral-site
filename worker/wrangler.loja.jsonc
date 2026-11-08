@@ -26,6 +26,11 @@
     // "sim" usa sandbox_init_point no modo teste. Com conta vendedora de teste, o init_point normal já é o teste.
     "MP_USAR_SANDBOX_INIT_POINT": "nao",
     "SITE_URL": "https://astralmc.online",
+    // Economia (ligada em 2026-11-07, docs/prisma.md): saldo de Prisma visível na carteira do jogo e recompensas de
+    // Iris. Pacotes de Prisma e compra de pets com Prisma continuam fechados (prisma_pacotes/prisma_precos ativo = 0 e
+    // sem PRISMA_GASTOS_ATIVO). Para desligar: tirar a variável e publicar de novo.
+    "PRISMA_ATIVO": "sim",
+    "RECOMPENSAS_ATIVO": "sim",
     "ALLOWED_ORIGINS": "https://astralmc.online,https://www.astralmc.online"
   },
   "d1_databases": [

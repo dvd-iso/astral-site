@@ -257,24 +257,31 @@ export function criarPrisma(h) {
   // ---------- casos de reembolso/contestação (revisão humana) ----------
 
   /** Casos abertos ou em análise, com os cosméticos que o jogador comprou, para a equipe decidir caso a caso. */
-  async function listarCasos(env, apos) {
+  async function listarCasos(env, apos, aposApoio = 0) {
     const {results} = await env.DB.prepare(
       `SELECT id, pedido_id, uuid, tipo, quantidade_pedido, quantidade_revertida, quantidade_pendente, acao_aplicada, estado, nota, criado_em, atualizado_em
        FROM prisma_casos WHERE id > ? AND estado <> 'resolvido' ORDER BY id LIMIT 50`).bind(apos).all();
     const casos = [];
     for (const c of results) casos.push({...c, saldo: await saldoDe(env, c.uuid), itens: await itensDe(env, c.uuid)});
-    return {casos};
+    const apoio = await env.DB.prepare(
+      `SELECT * FROM apoio_prisma_casos WHERE id > ? AND estado <> 'resolvido' ORDER BY id LIMIT 50`).bind(aposApoio).all();
+    const casosApoio = [];
+    for (const c of apoio.results) casosApoio.push({...c, origem: "apoio", saldo: await saldoDe(env, c.uuid), itens: await itensDe(env, c.uuid)});
+    // Cursor separado: IDs dos casos antigos não mudam e clientes legados podem ignorar o campo novo.
+    return {casos, casos_apoio: casosApoio};
   }
 
   /** Só muda o andamento do caso (não mexe em saldo nem em cosmético): correção de saldo é `ajuste` manual da equipe. */
-  async function atualizarCaso(env, {id, estado, resolucao, nota}) {
+  async function atualizarCaso(env, {id, estado, resolucao, nota, origem}) {
+    if (origem !== undefined && origem !== "apoio") throw new Erro(400, "origem_invalida");
+    const tabela = origem === "apoio" ? "apoio_prisma_casos" : "prisma_casos";
     if (!Number.isInteger(id) || id < 1) throw new Erro(400, "caso_invalido");
     if (!["aberto", "em_analise", "resolvido"].includes(estado)) throw new Erro(400, "estado_invalido");
     for (const v of [resolucao, nota]) if (v !== undefined && (typeof v !== "string" || v.length > 500)) throw new Erro(400, "texto_invalido");
     if (estado === "resolvido" && !resolucao) throw new Erro(400, "resolucao_obrigatoria");
     const t = agora();
     const r = await env.DB.prepare(
-      `UPDATE prisma_casos SET estado = ?1, resolucao = COALESCE(?2, resolucao), nota = COALESCE(?3, nota), atualizado_em = ?4,
+      `UPDATE ${tabela} SET estado = ?1, resolucao = COALESCE(?2, resolucao), nota = COALESCE(?3, nota), atualizado_em = ?4,
          resolvido_em = CASE WHEN ?1 = 'resolvido' THEN ?4 ELSE NULL END WHERE id = ?5`)
       .bind(estado, resolucao ?? null, nota ?? null, t, id).run();
     if (r.meta.changes !== 1) throw new Erro(404, "caso_inexistente");
@@ -464,8 +471,9 @@ export function criarPrisma(h) {
     if (caminho === "/servidor/prisma/precos" && req.method === "GET") return {gastos_ativos: prismaGastosAtivos(env), pets: await petsEmPrisma(env, null)};
     if (caminho === "/servidor/prisma/casos" && req.method === "GET") {
       const apos = Number(new URL(req.url).searchParams.get("apos") || 0);
-      if (!Number.isInteger(apos) || apos < 0) throw new Erro(400, "cursor_invalido");
-      return listarCasos(env, apos);
+      const aposApoio = Number(new URL(req.url).searchParams.get("apos_apoio") || 0);
+      if (!Number.isInteger(apos) || apos < 0 || !Number.isInteger(aposApoio) || aposApoio < 0) throw new Erro(400, "cursor_invalido");
+      return listarCasos(env, apos, aposApoio);
     }
     if (caminho === "/servidor/prisma/casos/atualizar" && req.method === "POST") return atualizarCaso(env, lerJson(corpo));
     if (caminho === "/servidor/prisma/novos" && req.method === "GET") {

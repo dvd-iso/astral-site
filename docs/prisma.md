@@ -1,6 +1,8 @@
 # Prisma e recompensas — infraestrutura do Worker (moeda de cosméticos)
 
-Estado: **código e testes na branch `prisma-infra`; nada aplicado em produção, nada publicado.** Pacotes aprovados e preços de pet em Prisma (100 por pet) já estão no catálogo (inativos). Regras Iris aprovadas estão em configuração SQL local, também inativas; não há tela no site. Três interruptores independentes, todos ausentes hoje: `PRISMA_ATIVO = "sim"` (compra e saldo), `PRISMA_GASTOS_ATIVO = "sim"` (gasto em cosméticos) e `RECOMPENSAS_ATIVO = "sim"` (concessões). Sem eles o comportamento é o de hoje (rotas 404 ou recusa).
+Revisão local de 2026-11-07: **apoios avulsos com 200/600/1200 Prisma**, por pedido pago, com diferença de Prisma no upgrade. Veja [a regra completa, migração e limites de validação em loja.md](loja.md#revisão-local-de-apoios-com-prisma-2026-11-07). Nada desta revisão foi aplicado remotamente. Pacotes standalone e gasto de pets continuam fechados: nenhum catálogo ou interruptor dessas ofertas foi ativado. As seções de pacotes abaixo documentam a infraestrutura anterior, não autorização para abrir vendas.
+
+`PRISMA_ATIVO = "sim"` habilita consulta de saldo e rotas Prisma; `PRISMA_GASTOS_ATIVO = "sim"` habilita gastos; `RECOMPENSAS_ATIVO = "sim"` habilita concessões. O crédito financeiro de um novo apoio válido é independente da flag das ofertas standalone e usa o mesmo livro-razão. Não inferir o estado atual de produção a partir deste documento.
 
 ## Catálogo aprovado (migração `0004_prisma_pacotes.sql`)
 
@@ -12,7 +14,7 @@ Aprovado pelo usuário em 2026-11-07 (escolha de UI 31f12332). Preço e quantida
 | `prisma_275` | 275 Prisma | R$ 24,90 | 0,0905 | −8,5% |
 | `prisma_600` | 600 Prisma | R$ 49,90 | 0,0832 | −16% |
 
-- Nascem `ativo = 0` e `preco_confirmado = 1`. Abrir a venda é deliberado: `PRISMA_ATIVO = "sim"` + `UPDATE prisma_pacotes SET ativo = 1, atualizado_em = unixepoch() WHERE id IN ('prisma_100','prisma_275','prisma_600');`. Em modo real ainda exige `LOJA_VENDAS_REAIS = "sim"`; `LOJA_PAUSADA` bloqueia.
+- Nascem `ativo = 0` e `preco_confirmado = 1` e continuam assim nesta revisão. Abrir pacotes standalone exige autorização independente. Em modo real ainda exigiria `LOJA_VENDAS_REAIS = "sim"`; `LOJA_PAUSADA` bloqueia.
 - **Pets: 100 Prisma por pet aprovado; cosméticos futuros ainda sem preço.** O gasto fica atrás de `PRISMA_GASTOS_ATIVO`: ausente, `POST /servidor/prisma/gastar` responde `403 gastos_desativados`, sem tocar no saldo. Abertura das vendas segue dependendo da aprovação final.
 - `GET /api/prisma/pacotes` (sem sessão, exige `PRISMA_ATIVO`) devolve `{modo, gastos_ativos, pacotes[{id,nome,quantidade,preco_centavos,moeda,preco_de_teste,a_venda}]}` só com pacotes ativos, para a página mostrar o catálogo antes de vincular a conta. `GET /api/prisma` (com sessão) também traz `gastos_ativos`.
 - Prisma fica no D1 (livro-razão); a Iris continua separada e fora do Worker.

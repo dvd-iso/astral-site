@@ -1,4 +1,50 @@
-# Loja de pets do Astral
+# Loja de pets e apoios do Astral
+
+## Revisão local de apoios com Prisma (2026-11-07)
+
+Implementação preparada no workspace, **sem migração remota, deploy, publicação nem alteração de assinaturas em produção**. As instruções de implantação abaixo são históricas, não registro de execução desta revisão.
+
+| Apoio avulso | Pagamento inteiro | Prisma por novo pedido pago |
+| --- | --- | --- |
+| Estrela (`apoio_20`) | R$ 20 | 200 |
+| Constelação (`apoio_50`) | R$ 50 | 600 |
+| Galáxia (`apoio_100`) | R$ 100 | 1200 |
+
+- Cargos, ícone, acesso e mural continuam seguindo a soma dos pagamentos. A quantidade de Prisma do tier superior **não se soma** à dos anteriores numa compra inteira. Não há item sob medida nem personagem como benefício novo; direitos/pedidos antigos não são apagados.
+- **Upgrade:** paga o que falta na soma em reais e recebe a quantidade do tier alvo menos a do maior tier já alcançado. Estrela → Constelação: R$ 30 e **400**, não 600 Prisma. Constelação → Galáxia: R$ 50 e 600 Prisma. Sem tier anterior: quantidade inteira. Saldos gastos e recompensas não entram no cálculo. Se a soma estiver entre tiers (ex.: cobranças antigas), a base em Prisma é a do maior tier alcançado, não uma proporção inventada em reais.
+- **Repetição:** tier já alcançado custa o valor inteiro e concede a quantidade inteira a cada novo pedido pago, sem carência de um mês. Continua somando para os cargos; atingir outro tier por acúmulo não cria outro crédito além do snapshot do pedido.
+- `produtos.prisma_quantidade` é o catálogo D1. `pedidos.prisma_quantidade` e `prisma_base_quantidade` são snapshots no checkout, inclusive para upgrades. Reaproveitar checkout exige mesmo valor, quantidade e base. Mudar o catálogo não muda pedidos já criados.
+- A migração **aditiva `0007_apoio_prisma.sql`** não recria tabelas. Pedidos anteriores mantêm quantidade **zero**, mesmo que pagos depois: nenhuma concessão retroativa automática. Cobranças de assinaturas antigas também nascem com zero; continuam somando financeiramente sem conceder Prisma.
+- `POST /api/assinaturas` responde `403 novas_assinaturas_encerradas` sem chamar Mercado Pago nem alterar assinatura antiga. O catálogo omite mensais e `/api/pedidos` também recusa produto mensal, mesmo se alguém o reativar por SQL. Consulta da conta, cancelamento, webhooks de assinatura/cobrança e conciliação continuam funcionando. Nenhuma assinatura existente é cancelada automaticamente.
+- A página conserva a gestão da assinatura mesmo sem tiers ativos. API antiga sem quantidade de Prisma deixa os novos botões fechados, sem reapresentar descrições de item/personagem. A resposta de um pedido antigo não afirma crédito de Prisma.
+- O saldo continua sendo **apenas `SUM(prisma_lancamentos.quantidade)`**. Não existe saldo de apoio paralelo. `apoio_pedido_id` liga os lançamentos aos pedidos sem quebrar a FK `pedido_id` dos pacotes. `apoio_prisma_efeitos` guarda só o marcador de reversão do ciclo, nunca saldo.
+- `worker/apoio-prisma.mjs` aplica estado financeiro, vínculo do primeiro pagamento aprovado, crédito/reversão e caso humano num **`DB.batch` atômico**. Cálculos de saldo são feitos no próprio `INSERT … SELECT`. Notificações e pagamentos duplicados, concorrência com gastos, retry e queda antes/depois do commit não duplicam crédito nem criam dívida. Refund ou disputa sem crédito anterior não toma posse do checkout: outro pagamento aprovado e conferido pode ser processado; o watermark de cada pagamento impede reativar uma leitura antiga dele.
+- **Direitos e recuperação durável:** triggers da migração registram `apoio_recalculos` na mesma transação da alteração financeira, também para mensal/legados e reembolso parcial. O recálculo lê a soma atual e grava direitos, histórico, entregas e confirmação da versão numa única transação, sem soma velha em JS. O cron recupera versões pendentes antes de consultar o MP, mesmo sem token, sem limite de idade e com o pedido reembolsado, contestado ou cancelado. Se uma etapa cair, a pendência não é confirmada e o cron termina a recuperação sem conceder Prisma retroativa.
+- A quantidade efetiva desta compra aparece junto ao botão, além do tooltip, com base no catálogo recebido. No upgrade Estrela → Constelação: **R$ 30 e 400 Prisma**. Catálogo incompleto não inventa quantidade nem habilita checkout.
+- O MP continua sendo relido e conferido pelo fluxo existente, incluindo valor, moeda, recebedor, referência e `live_mode`. `date_last_updated`, quando fornecido pela API, impede que uma leitura antiga sobrescreva estado/saldo ou o reembolso registrado mais recente. Notificações não são autorização financeira por si só.
+- **Disputa:** retém no máximo o saldo disponível até o efeito líquido do pedido. **Refund integral, chargeback ou cancelamento após aprovação:** reverte da mesma forma. O que já foi gasto abre caso humano; nunca há débito automático de crédito futuro, saldo negativo ou remoção de cosméticos. Vitória da loja libera só o que havia sido retido. Reembolso parcial mantém Prisma e abre caso; o dinheiro devolvido continua descontado da soma financeira dos tiers, como antes.
+- Casos ficam em `apoio_prisma_casos`, sem alterar FKs dos casos antigos. `GET /servidor/prisma/casos?apos=0&apos_apoio=0` preserva `casos` e acrescenta `casos_apoio`, com cursor independente. Para gerir um caso de apoio, envie `origem: "apoio"` em `/servidor/prisma/casos/atualizar`; a gestão não altera saldo/cosméticos. Requer o mesmo HMAC e `PRISMA_ATIVO` das rotas existentes.
+- **Pacotes standalone e compras de pets com Prisma continuam fechados.** Esta migração não ativa `prisma_pacotes`, `prisma_precos` ou `PRISMA_GASTOS_ATIVO`. O crédito de um apoio válido não depende do interruptor das ofertas standalone; consultar o saldo no jogo continua exigindo `PRISMA_ATIVO`.
+
+### Validação e implantação futura
+
+`node --test worker/test/` inclui backend, migração sobre banco legado, concorrência, falhas transacionais, disputa/refund/chargeback, legado mensal e o frontend real executado num DOM mínimo (`loja-frontend.test.mjs`). Não é teste visual nem pagamento real.
+
+Conferência adicional local em 2026-11-07: 120 testes Node passaram; `WorkerRealIT` do Astral Economic, contra este Worker e D1 em memória, passou 9/9 (nenhuma rede de produção). A página foi aberta no Chromium com catálogo simulado extraído da migração: três cards com 200/600/1200 Prisma, sem seletor mensal e sem overflow horizontal no viewport testado. Não houve checkout nem pagamento real.
+
+Correções posteriores à revisão independente, ainda locais: os testes adicionais reproduzem aprovação atrasada após refund, rollback antes do commit, crash após commit e no meio dos direitos, recuperação de refund/chargeback/cancelamento antigos pelo cron sem MP, snapshots zero/novos e outro pagamento válido após refund/disputa sem crédito. O frontend mostra preço e Prisma efetivos junto ao botão, sem depender de hover.
+
+Validação final após essas correções e os pedidos de pets/mural: `node --test worker/test/` passou **130/130**. `ASTRAL_WORKER_DIR=/Users/dvd/Projects/astral/astral-site mvn -o -Dtest='*Test,WorkerRealIT' test` no Economic passou **102/102**, incluindo 6 de variantes e 9 de integração com Worker/D1 locais. `git diff --check` limpo nos dois repositórios. Nenhum jar foi empacotado nem enviado.
+
+### Fotos dos pets e mural público
+
+- As imagens em `artes/pets/` não foram alteradas. O contrato local do Astral Economic fixa gato `minecraft:red`, raposa `RED`, axolote `LUCY`, coelho `BROWN`, sapo `minecraft:temperate`, Allay/abelha padrão, também com config antigo. Outros produtos personalizados não mudam. Veja `../astral-economic/docs/pets-foto.md` e o fragmento de migração `../astral-economic/ferramentas/pets-foto.yml`; nenhuma configuração da host foi lida/escrita. Idade e mecânicas não mudaram. A nova copy de aparência só corresponde ao runtime depois de uma futura instalação/reinício autorizados do plugin atualizado.
+- `#apoiadores` agora existe visível desde o HTML, com link junto ao apoio da home. `mural.js` diferencia carregando, nenhum apoiador público e falha, com retry e timeout. Usa só a lista pública, sem dados fictícios, cache local de nicks, credenciais ou logs pessoais; a opção de ocultar o nick continua filtrada no Worker. Agrupamento e contagens consideram somente os dados públicos recebidos.
+- Os testes DOM do mural cobrem região estável/âncora, agrupamento, zero públicos, HTTP/rede/payload inválido, retry e timeout. Os testes de variantes cobrem defaults/fragmento, config antigo, UUIDs distintos, catálogo customizado e enums Paper. Isso não substitui conferência visual em um cliente do jogo; não houve pagamento ou validação visual nova em produção.
+
+Ordem para uma **futura operação autorizada**: manter novas vendas pausadas durante a janela, aplicar `0007` antes de publicar o Worker que a exige, publicar Worker e depois HTML/JS (`loja.js?v=8`). Antes da copy que garante a aparência da foto, instalar a futura atualização autorizada do Economic com o contrato de variantes e conferir os pets após reinício. Conferir catálogo/checkout em sandbox e só então reabrir a oferta. O código antigo pode criar snapshots zero durante a janela se as vendas não forem pausadas. Não reescrever pedidos legados para conceder Prisma e não remover assinaturas.
+
+As seções seguintes documentam a implantação original da loja de pets.
 
 Primeira versão: só o **gato**, em **modo de teste**. Nenhuma venda real acontece até você mudar três coisas de propósito (veja [Abrir vendas reais](#abrir-vendas-reais)).
 

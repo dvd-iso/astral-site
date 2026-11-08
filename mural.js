@@ -6,12 +6,35 @@
   const API = String(cfg.apiUrl || "").replace(/\/$/, "");
   const secao = document.querySelector("[data-supporters]");
   const lista = document.querySelector("[data-supporters-list]");
-  if (!API || !secao || !lista) return;
+  const status = document.querySelector("[data-supporters-status]");
+  const tentar = document.querySelector("[data-supporters-retry]");
+  if (!secao || !lista || !status || !tentar) return;
+  secao.hidden = false;
+  let carregando = false;
 
-  fetch(`${API}/api/apoiadores`, {credentials: "omit"})
-    .then(r => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-    .then(({apoiadores = []}) => {
-      if (!apoiadores.length) return;
+  async function carregar() {
+    if (carregando) return;
+    carregando = true;
+    secao.setAttribute("aria-busy", "true");
+    status.textContent = "Carregando apoiadores…";
+    lista.replaceChildren(); // Não conserva nicks de uma consulta anterior (alguém pode ter optado por se esconder).
+    tentar.hidden = true;
+    tentar.disabled = true;
+    const abortar = new AbortController();
+    const limite = setTimeout(() => abortar.abort(), 12000);
+    try {
+      if (!API) throw new Error("api_indisponivel");
+      const r = await fetch(`${API}/api/apoiadores`, {credentials: "omit", cache: "no-store", signal: abortar.signal});
+      if (!r.ok) throw new Error("mural_indisponivel");
+      const {apoiadores} = await r.json();
+      if (!Array.isArray(apoiadores) || apoiadores.some(a => !a || typeof a.nome !== "string" || !a.nome || typeof a.tier !== "string" || !a.tier)) {
+        throw new Error("resposta_invalida");
+      }
+      if (!apoiadores.length) {
+        status.textContent = "Ainda não há apoiadores públicos no mural.";
+        return;
+      }
+      // Somente a lista pública recebida do Worker. Nada de fallback fictício, total privado ou cache local.
       const grupos = new Map();
       for (const a of apoiadores) {
         if (!grupos.has(a.tier)) grupos.set(a.tier, []);
@@ -33,7 +56,19 @@
         grupo.append(h, ul);
         lista.append(grupo);
       }
-      secao.hidden = false;
-    })
-    .catch(() => { /* sem mural: a seção continua escondida */ });
+      status.textContent = `${apoiadores.length} ${apoiadores.length === 1 ? "apoiador público" : "apoiadores públicos"} no mural.`;
+    } catch {
+      lista.replaceChildren();
+      status.textContent = "Não foi possível carregar o mural agora. Tente novamente.";
+      tentar.hidden = false;
+    } finally {
+      clearTimeout(limite);
+      secao.setAttribute("aria-busy", "false");
+      tentar.disabled = false;
+      carregando = false;
+    }
+  }
+
+  tentar.addEventListener("click", carregar);
+  carregar();
 })();
